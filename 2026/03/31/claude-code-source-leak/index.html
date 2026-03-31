@@ -1,0 +1,904 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="dark"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>我读完了Claude Code泄露的51万行源码 | Yufeng He | 何宇峰</title><meta name="author" content="Yufeng He"><meta name="copyright" content="Yufeng He"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#0a0e27"><meta name="description" content="1903个文件，51万行TypeScript。npm的source map没删干净，Anthropic最核心的AI Agent产品源码就这么泄露了。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="我读完了Claude Code泄露的51万行源码">
+<meta property="og:url" content="https://he-yufeng.github.io/2026/03/31/claude-code-source-leak/index.html">
+<meta property="og:site_name" content="Yufeng He | 何宇峰">
+<meta property="og:description" content="1903个文件，51万行TypeScript。npm的source map没删干净，Anthropic最核心的AI Agent产品源码就这么泄露了。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://t.mwm.moe/fj/">
+<meta property="article:published_time" content="2026-03-31T12:00:00.000Z">
+<meta property="article:modified_time" content="2026-03-31T13:28:39.102Z">
+<meta property="article:author" content="Yufeng He">
+<meta property="article:tag" content="AI Agent">
+<meta property="article:tag" content="Anthropic">
+<meta property="article:tag" content="Claude Code">
+<meta property="article:tag" content="TypeScript">
+<meta property="article:tag" content="源码分析">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://t.mwm.moe/fj/"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "我读完了Claude Code泄露的51万行源码",
+  "url": "https://he-yufeng.github.io/2026/03/31/claude-code-source-leak/",
+  "image": "https://t.mwm.moe/fj/",
+  "datePublished": "2026-03-31T12:00:00.000Z",
+  "dateModified": "2026-03-31T13:28:39.102Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Yufeng He",
+      "url": "https://github.com/he-yufeng"
+    }
+  ]
+}</script><link rel="shortcut icon" href="https://raw.githubusercontent.com/he-yufeng/he-yufeng.github.io/main/img/favicon.png"><link rel="canonical" href="https://he-yufeng.github.io/2026/03/31/claude-code-source-leak/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//fonts.googleapis.com" crossorigin=""/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.5.4"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/node-snackbar@0.1.16/dist/snackbar.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.9/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0a0e27')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#f8f9fa')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&amp;family=Noto+Sans+SC:wght@400;500;700&amp;display=swap" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":400,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: {"limitCount":50,"languages":{"author":"作者: Yufeng He","link":"链接: ","source":"来源: Yufeng He | 何宇峰","info":"著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。"}},
+  lightbox: 'fancybox',
+  Snackbar: {"chs_to_cht":"已切换为繁体中文","cht_to_chs":"已切换为简体中文","day_to_night":"已切换为深色模式","night_to_day":"已切换为浅色模式","bgLight":"#39C5BB","bgDark":"#1a237e","position":"bottom-left"},
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: true,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '我读完了Claude Code泄露的51万行源码',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet"><style>
+  /* 二次元 × 科技风 Custom CSS */
+
+  /* 全局背景增强 */
+  #web_bg {
+    background: linear-gradient(180deg, #0a0e27 0%, #131842 50%, #1a1f4e 100%) !important;
+  }
+
+  /* 导航栏毛玻璃 */
+  #nav {
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    background: rgba(10, 14, 39, 0.75) !important;
+    border-bottom: 1px solid rgba(57, 197, 187, 0.15) !important;
+  }
+
+  /* 卡片样式 - 半透明毛玻璃 */
+  #aside-content .card-widget,
+  .recent-post-item,
+  #post,
+  #page,
+  .layout > div {
+    background: rgba(20, 24, 60, 0.8) !important;
+    backdrop-filter: blur(12px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(150%) !important;
+    border: 1px solid rgba(57, 197, 187, 0.12) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  /* 文章标题霓虹发光效果 */
+  #post-info h1, .post-title {
+    text-shadow: 0 0 20px rgba(57, 197, 187, 0.5), 0 0 40px rgba(74, 144, 217, 0.3) !important;
+  }
+
+  /* 链接颜色 */
+  a:not(.btn):not([class*="tag"]) {
+    color: #6EC6FF !important;
+    transition: all 0.3s ease;
+  }
+  a:not(.btn):not([class*="tag"]):hover {
+    color: #39C5BB !important;
+    text-shadow: 0 0 10px rgba(57, 197, 187, 0.5);
+  }
+
+  /* 标签云 - 霓虹色 */
+  .tag-cloud-list a {
+    transition: all 0.3s ease !important;
+  }
+  .tag-cloud-list a:hover {
+    transform: scale(1.1);
+    text-shadow: 0 0 10px rgba(57, 197, 187, 0.8) !important;
+  }
+
+  /* 侧边栏作者卡片 */
+  #aside-content .card-widget .author-info__name {
+    color: #39C5BB !important;
+    font-weight: 700;
+  }
+
+  /* 滚动条 - 科技风 */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #39C5BB, #4A90D9);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0a0e27;
+  }
+
+  /* 代码块增强 */
+  figure.highlight {
+    border: 1px solid rgba(57, 197, 187, 0.2) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  /* 首页文章卡片 hover 效果 */
+  .recent-post-item:hover {
+    transform: translateY(-3px);
+    border-color: rgba(57, 197, 187, 0.4) !important;
+    box-shadow: 0 12px 40px rgba(57, 197, 187, 0.15) !important;
+    transition: all 0.3s ease;
+  }
+
+  /* Footer 科技感 */
+  #footer {
+    background: linear-gradient(180deg, transparent, rgba(10, 14, 39, 0.9)) !important;
+    border-top: 1px solid rgba(57, 197, 187, 0.1);
+  }
+
+  /* 搜索框 */
+  .search-dialog .search-nav {
+    background: rgba(20, 24, 60, 0.95) !important;
+  }
+
+  /* 分页器 */
+  #pagination .page-number.current {
+    background: linear-gradient(135deg, #39C5BB, #4A90D9) !important;
+  }
+
+  /* 头图字幕区域 */
+  #site-info .site-name {
+    font-family: 'JetBrains Mono', 'Noto Sans SC', monospace !important;
+    text-shadow: 0 0 30px rgba(57, 197, 187, 0.6), 0 0 60px rgba(74, 144, 217, 0.4) !important;
+  }
+
+  /* ====== 角色主题装饰 ====== */
+
+  /* 侧边栏底部 - 角色语录轮播 */
+  .card-widget.card-announcement .content {
+    font-style: italic;
+    border-left: 3px solid #39C5BB;
+    padding-left: 10px;
+  }
+
+  /* 文章封面图样式增强 */
+  .recent-post-item .post-bg {
+    transition: transform 0.6s ease !important;
+  }
+  .recent-post-item:hover .post-bg {
+    transform: scale(1.05) !important;
+  }
+
+  /* About页角色表格 - 霓虹边框 */
+  #page table {
+    border-collapse: collapse;
+  }
+  #page table th {
+    background: linear-gradient(135deg, rgba(57, 197, 187, 0.3), rgba(74, 144, 217, 0.3)) !important;
+    color: #39C5BB !important;
+  }
+  #page table td, #page table th {
+    border-color: rgba(57, 197, 187, 0.2) !important;
+    padding: 10px 14px !important;
+  }
+  #page table tr:hover td {
+    background: rgba(57, 197, 187, 0.08) !important;
+  }
+
+  /* About页代码块（升级路线图）特殊样式 */
+  #page figure.highlight, #page pre {
+    background: rgba(10, 14, 39, 0.9) !important;
+    border: 1px solid rgba(57, 197, 187, 0.3) !important;
+    border-radius: 12px !important;
+    color: #39C5BB !important;
+  }
+
+  /* 侧边栏头像光环 */
+  #aside-content .card-widget.card-info .avatar-img {
+    border: 3px solid #39C5BB !important;
+    box-shadow: 0 0 15px rgba(57, 197, 187, 0.4), 0 0 30px rgba(57, 197, 187, 0.2) !important;
+    animation: avatarGlow 3s ease-in-out infinite alternate;
+  }
+  @keyframes avatarGlow {
+    0% { box-shadow: 0 0 15px rgba(57, 197, 187, 0.4), 0 0 30px rgba(57, 197, 187, 0.2); }
+    100% { box-shadow: 0 0 20px rgba(74, 144, 217, 0.5), 0 0 40px rgba(110, 198, 255, 0.3); }
+  }
+
+  /* 打字机副标题增强 */
+  #site-info .typed-cursor {
+    color: #39C5BB !important;
+  }
+
+  /* 角色主题色彩标记 */
+  .post-meta-categories a {
+    background: linear-gradient(135deg, #39C5BB, #4A90D9) !important;
+    color: #fff !important;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+</style>
+<meta name="generator" content="Hexo 8.1.1"><link rel="alternate" href="/atom.xml" title="Yufeng He | 何宇峰" type="application/atom+xml">
+</head><body><script>window.paceOptions = {
+  restartOnPushState: false
+}
+
+btf.addGlobalFn('pjaxSend', () => {
+  Pace.restart()
+}, 'pace_restart')
+
+</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pace-js@1.2.4/themes/blue/pace-theme-minimal.min.css"/><script src="https://cdn.jsdelivr.net/npm/pace-js@1.2.4/pace.min.js"></script><div class="bg-animation" id="web_bg" style="background: linear-gradient(180deg, #0a0e27 0%, #131842 50%, #1a1f4e 100%);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="https://avatars.githubusercontent.com/u/he-yufeng" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/ loading='lazy'></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">53</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">130</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">8</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/projects/"><i class="fa-fw fas fa-code"></i><span> 项目</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-user"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg fixed" id="page-header" style="background-image: url(https://t.mwm.moe/fj/);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Yufeng He | 何宇峰</span></a><a class="nav-page-title" href="/"><span class="site-name">我读完了Claude Code泄露的51万行源码</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/projects/"><i class="fa-fw fas fa-code"></i><span> 项目</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-user"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">我读完了Claude Code泄露的51万行源码</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-03-31T12:00:00.000Z" title="发表于 2026-03-31 20:00:00">2026-03-31</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-03-31T13:28:39.102Z" title="更新于 2026-03-31 21:28:39">2026-03-31</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%8A%80%E6%9C%AF/">技术</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">3k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>10分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>今天（2026.3.31）发生了一件大事：Anthropic 的 Claude Code 完整源码泄露了。</p>
+<p>起因很离谱——有人发现 npm 上 <code>@anthropic-ai/claude-code</code> 的包里残留了 <code>.map</code> 文件，map 里有个指向 Anthropic R2 存储桶的下载链接，点进去是完整的未混淆 TypeScript 源码。zip 一解压，1903 个文件，51 万行代码，全部摊在眼前。</p>
+<p>作为一个日常使用 Claude Code 的重度用户（也是 AI Agent 方向的开发者），我立刻 clone 下来通读了一遍。下面是我觉得最有价值的发现，按”有意思的程度”排序，不是按目录结构排。</p>
+<h2 id="先说技术栈，刷新了我的认知"><a href="#先说技术栈，刷新了我的认知" class="headerlink" title="先说技术栈，刷新了我的认知"></a>先说技术栈，刷新了我的认知</h2><p>Bun + TypeScript + React + Ink。没错，一个终端 CLI 工具的 UI 层用的是 React。</p>
+<p>Ink 是一个把 React 组件渲染到终端的框架，Claude Code 用它做了整个 TUI 界面——你看到的那些权限弹窗、进度条、工具调用的实时展示，底下全是 JSX。</p>
+<p>说实话一开始挺意外的，但想想也合理：终端 UI 的状态管理确实比想象中复杂（多个 Agent 并行、流式输出、用户中断…），用 React 的状态模型来管比手搓要靠谱得多。</p>
+<h2 id="Agentic-Loop：一个-while-true-撑起整个-Agent"><a href="#Agentic-Loop：一个-while-true-撑起整个-Agent" class="headerlink" title="Agentic Loop：一个 while(true) 撑起整个 Agent"></a>Agentic Loop：一个 while(true) 撑起整个 Agent</h2><p>整个 Claude Code 最核心的文件是 <code>src/query.ts</code>，1729 行，实现了完整的 agentic 循环。注意不是 <code>QueryEngine.ts</code>——那个是外层的会话管理。真正的”大脑”在 <code>query.ts</code> 里。</p>
+<p>简化后的核心逻辑：</p>
+<figure class="highlight typescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">async</span> <span class="keyword">function</span>* <span class="title function_">queryLoop</span>(<span class="params">params</span>) &#123;</span><br><span class="line">  <span class="keyword">let</span> state = &#123; messages, toolUseContext, <span class="attr">turnCount</span>: <span class="number">1</span>, ... &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">    <span class="comment">// 1) 一堆预处理：裁历史、压缩上下文、预取 memory 和 skills</span></span><br><span class="line">    <span class="comment">// 2) 调 Claude API（流式）</span></span><br><span class="line">    <span class="comment">// 3) 一边收流一边看有没有 tool_use block</span></span><br><span class="line">    <span class="comment">// 4) 有的话 → 检查权限 → 执行 → 结果塞回 messages → 回到 while</span></span><br><span class="line">    <span class="comment">// 5) 没有工具调用 → 退出</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>看着简单，但魔鬼在细节里。我挑几个最有意思的说。</p>
+<h3 id="上下文管理：不是一刀切，是四把手术刀"><a href="#上下文管理：不是一刀切，是四把手术刀" class="headerlink" title="上下文管理：不是一刀切，是四把手术刀"></a>上下文管理：不是一刀切，是四把手术刀</h3><p>用过 Claude Code 的人都知道，长对话到后面它会自动”压缩”。我之前以为就是简单地把早期对话摘要一下。读了源码才知道，它其实有四种不同粒度的压缩机制在同时工作：</p>
+<ol>
+<li><p><strong>HISTORY_SNIP</strong>：最精细，直接把某些特定消息范围删掉，不做任何摘要。适合清理掉已经没用的中间工具调用结果。</p>
+</li>
+<li><p><strong>Microcompact</strong>：利用 API 层的 <code>cache_deleted_input_tokens</code> 能力，在缓存层面做编辑。这个比较黑科技——它不改消息内容，而是告诉 API”这些 token 你缓存里有但别用了”。</p>
+</li>
+<li><p><strong>CONTEXT_COLLAPSE</strong>：把旧的对话轮次”归档”成摘要，维护一个类似 git 提交日志的结构。每次新查询时重放这个日志。和 autocompact 的区别是它保留了结构化的归档，不是一坨摘要。</p>
+</li>
+<li><p><strong>Autocompact</strong>：最粗暴的一种，把整个历史压缩成一段摘要。最后的兜底手段。</p>
+</li>
+</ol>
+<p>这四种机制不互斥，按顺序依次执行。如果 snip 和 microcompact 已经把上下文压到阈值以下了，autocompact 就不触发。</p>
+<p>这给我的启发挺大的——做 Agent 的上下文管理不能只有一种策略。不同场景下信息的”过期速度”不一样，需要分层处理。</p>
+<h3 id="流式工具并行：模型还在说话就开始干活了"><a href="#流式工具并行：模型还在说话就开始干活了" class="headerlink" title="流式工具并行：模型还在说话就开始干活了"></a>流式工具并行：模型还在说话就开始干活了</h3><p>这是我觉得最精巧的设计。普通的实现是：等模型说完 → 看有没有工具调用 → 有的话执行 → 结果返回 → 下一轮。Claude Code 不等。</p>
+<figure class="highlight typescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// StreamingToolExecutor.ts</span></span><br><span class="line"><span class="keyword">export</span> <span class="keyword">class</span> <span class="title class_">StreamingToolExecutor</span> &#123;</span><br><span class="line">  <span class="comment">// 模型流式吐出一个 tool_use block，立刻开始执行</span></span><br><span class="line">  <span class="title function_">addTool</span>(<span class="attr">block</span>: <span class="title class_">ToolUseBlock</span>, <span class="attr">message</span>: <span class="title class_">AssistantMessage</span>): <span class="built_in">void</span> &#123; ... &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 并发安全的工具可以同时跑，写操作独占</span></span><br><span class="line">  <span class="comment">// 结果按接收顺序缓冲、按序输出</span></span><br><span class="line">  <span class="keyword">async</span> *<span class="title function_">getRemainingResults</span>(): <span class="title class_">AsyncGenerator</span>&lt;<span class="title class_">MessageUpdate</span>&gt; &#123; ... &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>模型还在流式输出后面的内容，前面的工具就已经在跑了。每个工具有个 <code>isConcurrencySafe</code> 标记——读文件、grep 这种只读操作可以并行，写文件、bash 这种需要独占。结果按接收顺序缓冲，不会乱序。</p>
+<p>实测下来 Claude Code 的响应速度明显比 Cursor 快，有一部分原因应该就在这里。</p>
+<h3 id="max-output-tokens-自动恢复"><a href="#max-output-tokens-自动恢复" class="headerlink" title="max_output_tokens 自动恢复"></a>max_output_tokens 自动恢复</h3><figure class="highlight typescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> <span class="variable constant_">MAX_OUTPUT_TOKENS_RECOVERY_LIMIT</span> = <span class="number">3</span></span><br></pre></td></tr></table></figure>
+
+<p>模型输出撞到 token 上限？循环不报错，”扣留”这个错误消息，悄悄重试，最多 3 次。对用户来说是无感的。</p>
+<p>这段代码上面有个很有意思的注释，是一段模仿中世纪巫师口吻的话：</p>
+<blockquote>
+<p><em>Heed these rules well, young wizard. For they are the rules of thinking, and the rules of thinking are the rules of the universe. If ye does not heed these rules, ye will be punished with an entire day of debugging and hair pulling.</em></p>
+</blockquote>
+<p>翻译过来就是：”好好记住这些规则，年轻的巫师。如果你不听，你就等着花一整天调试和薅头发吧。”</p>
+<p>看得出来这块代码的维护者被坑过不少次。</p>
+<h2 id="工具系统：不用-class-继承，全是工厂函数"><a href="#工具系统：不用-class-继承，全是工厂函数" class="headerlink" title="工具系统：不用 class 继承，全是工厂函数"></a>工具系统：不用 class 继承，全是工厂函数</h2><p>我之前做 Agent 框架的工具系统，下意识会写一个 <code>BaseTool</code> 基类然后继承。Claude Code 完全没有继承，全是纯函数式的 <code>buildTool()</code>：</p>
+<figure class="highlight typescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> <span class="title class_">ToolDef</span>&lt;T&gt; = &#123;</span><br><span class="line">  <span class="attr">name</span>: <span class="built_in">string</span></span><br><span class="line">  <span class="attr">description</span>: <span class="built_in">string</span></span><br><span class="line">  <span class="attr">inputSchema</span>: <span class="title class_">ZodSchema</span>&lt;T&gt;           <span class="comment">// Zod v4 做校验 + 自动生成 JSON Schema</span></span><br><span class="line">  <span class="title function_">call</span>(<span class="attr">input</span>: T, <span class="attr">ctx</span>: <span class="title class_">ToolUseContext</span>): <span class="title class_">AsyncGenerator</span>&lt;...&gt;</span><br><span class="line">  <span class="title function_">isReadOnly</span>(): <span class="built_in">boolean</span></span><br><span class="line">  <span class="title function_">getPermissions</span>(): <span class="title class_">ToolPermission</span>[]</span><br><span class="line">  renderToolUse?(<span class="attr">input</span>: T): <span class="title class_">ReactNode</span>  <span class="comment">// 直接渲染到终端</span></span><br><span class="line">  getToolUseSummary?(input, result): <span class="built_in">string</span>  <span class="comment">// 压缩上下文时的摘要</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>每个工具完全自包含：schema、权限、执行逻辑、UI 渲染、压缩摘要，全在一个文件里。没有全局注册表——每个 session 动态组装工具池，可以混合静态工具、MCP 工具、Agent 定义的工具。</p>
+<p>40 多个工具里最复杂的是 BashTool。它不是简单 <code>exec(command)</code>：自动分类命令类型（search&#x2F;read&#x2F;write），macOS 上走 sandbox-exec 沙箱，超过 15 秒的阻塞命令自动转后台，大输出存磁盘只给模型一个文件路径引用，还内置了一个 sed 命令专用解析器。</p>
+<h2 id="Feature-Flag：我见过最优雅的功能门控"><a href="#Feature-Flag：我见过最优雅的功能门控" class="headerlink" title="Feature Flag：我见过最优雅的功能门控"></a>Feature Flag：我见过最优雅的功能门控</h2><p>这块设计我觉得是全项目最值得偷的。Claude Code 用编译时 + 运行时两层 flag：</p>
+<h3 id="编译时：字符串级别的死代码消除"><a href="#编译时：字符串级别的死代码消除" class="headerlink" title="编译时：字符串级别的死代码消除"></a>编译时：字符串级别的死代码消除</h3><figure class="highlight typescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> &#123; feature &#125; <span class="keyword">from</span> <span class="string">&#x27;bun:bundle&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> voiceModule = <span class="title function_">feature</span>(<span class="string">&#x27;VOICE_MODE&#x27;</span>)</span><br><span class="line">  ? <span class="built_in">require</span>(<span class="string">&#x27;./voice/index.js&#x27;</span>)</span><br><span class="line">  : <span class="literal">null</span></span><br></pre></td></tr></table></figure>
+
+<p><code>feature()</code> 是 Bun 的编译时宏。构建时会被替换成 <code>true</code> 或 <code>false</code>，<code>false</code> 的分支直接被删除——不是”不执行”，是从二进制文件里物理消失，连字符串字面量都不剩。</p>
+<p>为什么要这么做？因为安全研究员会反编译你的二进制去找隐藏功能（比如今天这次泄露…）。运行时 flag 再怎么关，字符串还在那。编译时 DCE 才是真的”不存在”。</p>
+<p>讽刺的是，源码泄露之后这层保护就不管用了。但设计思路还是很值得学的。</p>
+<p>我在源码里搜到十几个编译时 flag：<code>VOICE_MODE</code>、<code>BRIDGE_MODE</code>、<code>DAEMON</code>、<code>KAIROS</code>、<code>COORDINATOR_MODE</code>、<code>PROACTIVE</code>、<code>ABLATION_BASELINE</code>、<code>HISTORY_SNIP</code>、<code>REACTIVE_COMPACT</code>、<code>CONTEXT_COLLAPSE</code>、<code>CACHED_MICROCOMPACT</code>、<code>CHICAGO_MCP</code>……每一个都对应一个未发布或正在灰度的功能。</p>
+<h3 id="运行时：GrowthBook-A-B-测试"><a href="#运行时：GrowthBook-A-B-测试" class="headerlink" title="运行时：GrowthBook A&#x2F;B 测试"></a>运行时：GrowthBook A&#x2F;B 测试</h3><figure class="highlight typescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> enabled = <span class="title function_">checkStatsigFeatureGate_CACHED_MAY_BE_STALE</span>(</span><br><span class="line">  <span class="string">&#x27;tengu_streaming_tool_execution2&#x27;</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>用于灰度发布和 kill switch。所有 gate 名称都是 <code>tengu_</code> 前缀——tengu（天狗）大概是 Claude Code 的内部代号。从磁盘缓存读取，接受脏读，不阻塞启动。</p>
+<h3 id="意外发现：消融实验基础设施"><a href="#意外发现：消融实验基础设施" class="headerlink" title="意外发现：消融实验基础设施"></a>意外发现：消融实验基础设施</h3><p>有个 flag 叫 <code>ABLATION_BASELINE</code>，启用后会一次性关掉思考模式、上下文压缩、自动记忆、后台任务：</p>
+<figure class="highlight typescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (<span class="title function_">feature</span>(<span class="string">&#x27;ABLATION_BASELINE&#x27;</span>) &amp;&amp; process.<span class="property">env</span>.<span class="property">CLAUDE_CODE_ABLATION_BASELINE</span>) &#123;</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">const</span> k <span class="keyword">of</span> [</span><br><span class="line">    <span class="string">&#x27;CLAUDE_CODE_DISABLE_THINKING&#x27;</span>,</span><br><span class="line">    <span class="string">&#x27;DISABLE_COMPACT&#x27;</span>,</span><br><span class="line">    <span class="string">&#x27;DISABLE_AUTO_COMPACT&#x27;</span>,</span><br><span class="line">    <span class="string">&#x27;CLAUDE_CODE_DISABLE_AUTO_MEMORY&#x27;</span>,</span><br><span class="line">    <span class="string">&#x27;CLAUDE_CODE_DISABLE_BACKGROUND_TASKS&#x27;</span>,</span><br><span class="line">  ]) &#123;</span><br><span class="line">    process.<span class="property">env</span>[k] ??= <span class="string">&#x27;1&#x27;</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>做过 ML 的都知道消融实验是什么——逐个关掉组件看性能影响。但把这套方法论搬到产品工程上，这是我第一次在工业代码里见到。说明 Anthropic 在认真量化每个功能特性到底值不值。</p>
+<h2 id="隐藏功能：还没发布的东西"><a href="#隐藏功能：还没发布的东西" class="headerlink" title="隐藏功能：还没发布的东西"></a>隐藏功能：还没发布的东西</h2><p>这部分是全文最有噱头的内容。</p>
+<h3 id="Voice-Mode（代号-Amber-Quartz）"><a href="#Voice-Mode（代号-Amber-Quartz）" class="headerlink" title="Voice Mode（代号 Amber Quartz）"></a>Voice Mode（代号 Amber Quartz）</h3><p><code>src/voice/</code> 目录确认了语音模式的存在。从 <code>voiceModeEnabled.ts</code> 看：</p>
+<ul>
+<li>只支持 Claude.ai OAuth 认证（API key、Bedrock、Vertex 都不行）</li>
+<li>走的是一个专门的 <code>voice_stream</code> 端点</li>
+<li>有个紧急 kill switch：GrowthBook flag <code>tengu_amber_quartz_disabled</code></li>
+<li>从注释看已经开发到可以使用的程度了</li>
+</ul>
+<h3 id="Bridge-Mode：把你的电脑变成-Claude-的远程终端"><a href="#Bridge-Mode：把你的电脑变成-Claude-的远程终端" class="headerlink" title="Bridge Mode：把你的电脑变成 Claude 的远程终端"></a>Bridge Mode：把你的电脑变成 Claude 的远程终端</h3><p><code>src/bridge/</code> 有 31 个文件，是一个完整的远程控制系统。运行 <code>claude remote-control</code> 之后，你的本地环境就变成一个被 claude.ai 远程操控的”桥接环境”。</p>
+<p>最多支持 32 个并发会话，有 JWT 认证 + 可信设备机制，企业管理员可以通过策略禁用。这应该是为了让 claude.ai 网页版能直接操作用户本地的开发环境。</p>
+<h3 id="Buddy：终端里的电子宠物"><a href="#Buddy：终端里的电子宠物" class="headerlink" title="Buddy：终端里的电子宠物"></a>Buddy：终端里的电子宠物</h3><p>这个是最让我没想到的。</p>
+<p>Claude Code 内置了一个完整的虚拟宠物系统，而且没有用 feature flag 门控——已经在公开版本的二进制里了（只是可能还没暴露入口）：</p>
+<figure class="highlight typescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 18 种宠物</span></span><br><span class="line"><span class="keyword">export</span> <span class="keyword">const</span> <span class="variable constant_">SPECIES</span> = [</span><br><span class="line">  duck, goose, blob, cat, dragon, octopus, owl, penguin,</span><br><span class="line">  turtle, snail, ghost, axolotl, capybara, cactus, robot,</span><br><span class="line">  rabbit, mushroom, chonk</span><br><span class="line">] <span class="keyword">as</span> <span class="keyword">const</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 5 级稀有度：普通(60%) / 罕见(25%) / 稀有(10%) / 史诗(4%) / 传说(1%)</span></span><br><span class="line"><span class="keyword">export</span> <span class="keyword">const</span> <span class="variable constant_">RARITY_WEIGHTS</span> = &#123;</span><br><span class="line">  <span class="attr">common</span>: <span class="number">60</span>, <span class="attr">uncommon</span>: <span class="number">25</span>, <span class="attr">rare</span>: <span class="number">10</span>, <span class="attr">epic</span>: <span class="number">4</span>, <span class="attr">legendary</span>: <span class="number">1</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// RPG 式属性</span></span><br><span class="line"><span class="keyword">export</span> <span class="keyword">const</span> <span class="variable constant_">STAT_NAMES</span> = [<span class="string">&#x27;DEBUGGING&#x27;</span>,<span class="string">&#x27;PATIENCE&#x27;</span>,<span class="string">&#x27;CHAOS&#x27;</span>,<span class="string">&#x27;WISDOM&#x27;</span>,<span class="string">&#x27;SNARK&#x27;</span>] <span class="keyword">as</span> <span class="keyword">const</span></span><br></pre></td></tr></table></figure>
+
+<p>还有帽子（皇冠、礼帽、螺旋桨帽、光环、巫师帽、豆豆帽、头顶小鸭子）、眼睛样式、1% 概率的闪光变体。宠物属性用 Mulberry32 伪随机数生成器从你的用户 ID 确定性计算——所以每个用户的宠物是固定的，不能刷。</p>
+<p>但最有意思的是物种名的编码方式：</p>
+<figure class="highlight typescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 所有物种名用 hex 编码，因为有一个名字和内部模型代号撞了</span></span><br><span class="line"><span class="keyword">const</span> c = <span class="title class_">String</span>.<span class="property">fromCharCode</span></span><br><span class="line"><span class="keyword">export</span> <span class="keyword">const</span> duck = <span class="title function_">c</span>(<span class="number">0x64</span>,<span class="number">0x75</span>,<span class="number">0x63</span>,<span class="number">0x6b</span>) <span class="keyword">as</span> <span class="string">&#x27;duck&#x27;</span></span><br><span class="line"><span class="keyword">export</span> <span class="keyword">const</span> goose = <span class="title function_">c</span>(<span class="number">0x67</span>,<span class="number">0x6f</span>,<span class="number">0x6f</span>,<span class="number">0x73</span>,<span class="number">0x65</span>) <span class="keyword">as</span> <span class="string">&#x27;goose&#x27;</span></span><br><span class="line"><span class="keyword">export</span> <span class="keyword">const</span> capybara = <span class="title function_">c</span>(<span class="number">0x63</span>,<span class="number">0x61</span>,<span class="number">0x70</span>,<span class="number">0x79</span>,<span class="number">0x62</span>,<span class="number">0x61</span>,<span class="number">0x72</span>,<span class="number">0x61</span>) <span class="keyword">as</span> <span class="string">&#x27;capybara&#x27;</span></span><br><span class="line"><span class="comment">// ... 全部 18 个都这样</span></span><br></pre></td></tr></table></figure>
+
+<p>注释原文：”One species name collides with a model-codename canary in excluded-strings.txt.”</p>
+<p>构建系统会 grep 输出文件里有没有被排除的字符串。也就是说，这 18 个物种名中有一个恰好是 Anthropic 某个未公开模型的代号。把所有名字都 hex 编码是为了防止误触发检测。</p>
+<p>到底是哪个名字？duck、goose、blob、cat、dragon、octopus、owl、penguin、turtle、snail、ghost、axolotl、capybara、cactus、robot、rabbit、mushroom、chonk——其中一个是 Anthropic 下一个模型的代号。随便猜猜？</p>
+<h2 id="泄露根因：npm-source-map"><a href="#泄露根因：npm-source-map" class="headerlink" title="泄露根因：npm source map"></a>泄露根因：npm source map</h2><p>这次泄露的技术原因很简单：npm 发布时 <code>.map</code> 文件没有移除。Source map 中包含指向 R2 存储桶的 zip 下载链接，而该链接无需认证即可访问。</p>
+<p>对所有 npm 包发布者的教训：</p>
+<ol>
+<li><code>.npmignore</code> 或 <code>package.json</code> 的 <code>files</code> 字段要显式排除 <code>.map</code> 文件</li>
+<li>构建流水线应该有 CI 检查，验证发布产物不包含 source map</li>
+<li>如果必须保留 source map，确保其中不包含源码引用 URL</li>
+<li>存储桶的访问控制要独立于代码的发布流程</li>
+</ol>
+<h2 id="写在最后"><a href="#写在最后" class="headerlink" title="写在最后"></a>写在最后</h2><p>读完 51 万行代码，我最大的感受不是某个具体技术多牛，而是这个团队在用做研究的方法做工程。</p>
+<p>消融实验基础设施、双层 feature flag、四种粒度的上下文管理、流式工具并行——每一个都不是拍脑袋加的，背后大概率有数据支撑。这种”每个功能都有量化验证”的工程文化，比任何单点技术都更值得学。</p>
+<p>当然，宠物系统除外。那个纯粹是因为好玩。</p>
+<hr>
+<p><em>声明：本文基于公开泄露的源码进行技术分析，所有代码版权归 Anthropic 所有。</em></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/he-yufeng">Yufeng He</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://he-yufeng.github.io/2026/03/31/claude-code-source-leak/">https://he-yufeng.github.io/2026/03/31/claude-code-source-leak/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://he-yufeng.github.io" target="_blank">Yufeng He | 何宇峰</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/AI-Agent/">AI Agent</a><a class="post-meta__tags" href="/tags/Claude-Code/">Claude Code</a><a class="post-meta__tags" href="/tags/Anthropic/">Anthropic</a><a class="post-meta__tags" href="/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/">源码分析</a><a class="post-meta__tags" href="/tags/TypeScript/">TypeScript</a></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2026/03/17/ai-era-programmer/" title="AI时代的程序员：哪些能力在升值，哪些在贬值"><img class="cover" src="https://t.mwm.moe/ycy/" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post" loading='lazy'><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">AI时代的程序员：哪些能力在升值，哪些在贬值</div></div><div class="info-2"><div class="info-item-1">不是危机论也不是乐观论，是一些具体的观察</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2024/04/01/uniccloud-medical-ai/" title="和医院一起做AI：当代码遇上听诊器"><img class="cover" src="https://i.pinimg.com/736x/6e/ca/48/6eca489f75a1d91fcb41da1a30dcb6e7.jpg" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-04-01</div><div class="info-item-2">和医院一起做AI：当代码遇上听诊器</div></div><div class="info-2"><div class="info-item-1">三层LLM Agent做糖尿病随诊，F1=90%，但医疗AI的故事远不止指标</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="https://avatars.githubusercontent.com/u/he-yufeng" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/ loading='lazy'></div><div class="author-info-name">Yufeng He</div><div class="author-info-description">AI Engineer | ACM-ICPC 3× Silver | HKU MSc CS</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">53</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">130</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">8</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/he-yufeng"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/he-yufeng" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="https://linkedin.com/in/yufenghe" target="_blank" title="LinkedIn"><i class="fab fa-linkedin" style="color: #0077B5;"></i></a><a class="social-icon" href="mailto:heyufeng03@qq.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a><a class="social-icon" href="javascript:void(0)" target="_blank" title="WeChat:universeplayer"><i class="fab fa-weixin" style="color: #07c160;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">「これが、私の最後の、電磁砲（レールガン）だ。」—— 御坂美琴 ⚡</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%88%E8%AF%B4%E6%8A%80%E6%9C%AF%E6%A0%88%EF%BC%8C%E5%88%B7%E6%96%B0%E4%BA%86%E6%88%91%E7%9A%84%E8%AE%A4%E7%9F%A5"><span class="toc-number">1.</span> <span class="toc-text">先说技术栈，刷新了我的认知</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Agentic-Loop%EF%BC%9A%E4%B8%80%E4%B8%AA-while-true-%E6%92%91%E8%B5%B7%E6%95%B4%E4%B8%AA-Agent"><span class="toc-number">2.</span> <span class="toc-text">Agentic Loop：一个 while(true) 撑起整个 Agent</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%EF%BC%9A%E4%B8%8D%E6%98%AF%E4%B8%80%E5%88%80%E5%88%87%EF%BC%8C%E6%98%AF%E5%9B%9B%E6%8A%8A%E6%89%8B%E6%9C%AF%E5%88%80"><span class="toc-number">2.1.</span> <span class="toc-text">上下文管理：不是一刀切，是四把手术刀</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B5%81%E5%BC%8F%E5%B7%A5%E5%85%B7%E5%B9%B6%E8%A1%8C%EF%BC%9A%E6%A8%A1%E5%9E%8B%E8%BF%98%E5%9C%A8%E8%AF%B4%E8%AF%9D%E5%B0%B1%E5%BC%80%E5%A7%8B%E5%B9%B2%E6%B4%BB%E4%BA%86"><span class="toc-number">2.2.</span> <span class="toc-text">流式工具并行：模型还在说话就开始干活了</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#max-output-tokens-%E8%87%AA%E5%8A%A8%E6%81%A2%E5%A4%8D"><span class="toc-number">2.3.</span> <span class="toc-text">max_output_tokens 自动恢复</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B7%A5%E5%85%B7%E7%B3%BB%E7%BB%9F%EF%BC%9A%E4%B8%8D%E7%94%A8-class-%E7%BB%A7%E6%89%BF%EF%BC%8C%E5%85%A8%E6%98%AF%E5%B7%A5%E5%8E%82%E5%87%BD%E6%95%B0"><span class="toc-number">3.</span> <span class="toc-text">工具系统：不用 class 继承，全是工厂函数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Feature-Flag%EF%BC%9A%E6%88%91%E8%A7%81%E8%BF%87%E6%9C%80%E4%BC%98%E9%9B%85%E7%9A%84%E5%8A%9F%E8%83%BD%E9%97%A8%E6%8E%A7"><span class="toc-number">4.</span> <span class="toc-text">Feature Flag：我见过最优雅的功能门控</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BC%96%E8%AF%91%E6%97%B6%EF%BC%9A%E5%AD%97%E7%AC%A6%E4%B8%B2%E7%BA%A7%E5%88%AB%E7%9A%84%E6%AD%BB%E4%BB%A3%E7%A0%81%E6%B6%88%E9%99%A4"><span class="toc-number">4.1.</span> <span class="toc-text">编译时：字符串级别的死代码消除</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%BF%90%E8%A1%8C%E6%97%B6%EF%BC%9AGrowthBook-A-B-%E6%B5%8B%E8%AF%95"><span class="toc-number">4.2.</span> <span class="toc-text">运行时：GrowthBook A&#x2F;B 测试</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%84%8F%E5%A4%96%E5%8F%91%E7%8E%B0%EF%BC%9A%E6%B6%88%E8%9E%8D%E5%AE%9E%E9%AA%8C%E5%9F%BA%E7%A1%80%E8%AE%BE%E6%96%BD"><span class="toc-number">4.3.</span> <span class="toc-text">意外发现：消融实验基础设施</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%9A%90%E8%97%8F%E5%8A%9F%E8%83%BD%EF%BC%9A%E8%BF%98%E6%B2%A1%E5%8F%91%E5%B8%83%E7%9A%84%E4%B8%9C%E8%A5%BF"><span class="toc-number">5.</span> <span class="toc-text">隐藏功能：还没发布的东西</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Voice-Mode%EF%BC%88%E4%BB%A3%E5%8F%B7-Amber-Quartz%EF%BC%89"><span class="toc-number">5.1.</span> <span class="toc-text">Voice Mode（代号 Amber Quartz）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Bridge-Mode%EF%BC%9A%E6%8A%8A%E4%BD%A0%E7%9A%84%E7%94%B5%E8%84%91%E5%8F%98%E6%88%90-Claude-%E7%9A%84%E8%BF%9C%E7%A8%8B%E7%BB%88%E7%AB%AF"><span class="toc-number">5.2.</span> <span class="toc-text">Bridge Mode：把你的电脑变成 Claude 的远程终端</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Buddy%EF%BC%9A%E7%BB%88%E7%AB%AF%E9%87%8C%E7%9A%84%E7%94%B5%E5%AD%90%E5%AE%A0%E7%89%A9"><span class="toc-number">5.3.</span> <span class="toc-text">Buddy：终端里的电子宠物</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B3%84%E9%9C%B2%E6%A0%B9%E5%9B%A0%EF%BC%9Anpm-source-map"><span class="toc-number">6.</span> <span class="toc-text">泄露根因：npm source map</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%86%99%E5%9C%A8%E6%9C%80%E5%90%8E"><span class="toc-number">7.</span> <span class="toc-text">写在最后</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/03/31/claude-code-source-leak/" title="我读完了Claude Code泄露的51万行源码"><img src="https://t.mwm.moe/fj/" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="我读完了Claude Code泄露的51万行源码"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/03/31/claude-code-source-leak/" title="我读完了Claude Code泄露的51万行源码">我读完了Claude Code泄露的51万行源码</a><time datetime="2026-03-31T12:00:00.000Z" title="发表于 2026-03-31 20:00:00">2026-03-31</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/17/ai-era-programmer/" title="AI时代的程序员：哪些能力在升值，哪些在贬值"><img src="https://t.mwm.moe/ycy/" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="AI时代的程序员：哪些能力在升值，哪些在贬值"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/03/17/ai-era-programmer/" title="AI时代的程序员：哪些能力在升值，哪些在贬值">AI时代的程序员：哪些能力在升值，哪些在贬值</a><time datetime="2026-03-17T12:00:00.000Z" title="发表于 2026-03-17 20:00:00">2026-03-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/17/electronic-music-vocaloid/" title="从VOCALOID到EDM：电子音乐审美的二十年"><img src="https://t.mwm.moe/ycy/" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="从VOCALOID到EDM：电子音乐审美的二十年"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/03/17/electronic-music-vocaloid/" title="从VOCALOID到EDM：电子音乐审美的二十年">从VOCALOID到EDM：电子音乐审美的二十年</a><time datetime="2026-03-17T07:00:00.000Z" title="发表于 2026-03-17 15:00:00">2026-03-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/17/topological-sort/" title="拓扑排序：有向无环图的线性化"><img src="https://t.mwm.moe/fj/" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="拓扑排序：有向无环图的线性化"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/03/17/topological-sort/" title="拓扑排序：有向无环图的线性化">拓扑排序：有向无环图的线性化</a><time datetime="2026-03-17T02:00:00.000Z" title="发表于 2026-03-17 10:00:00">2026-03-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/16/honkai-vs-genshin/" title="崩铁和原神的叙事差距在哪里"><img src="https://t.mwm.moe/ycy/" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="崩铁和原神的叙事差距在哪里"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/03/16/honkai-vs-genshin/" title="崩铁和原神的叙事差距在哪里">崩铁和原神的叙事差距在哪里</a><time datetime="2026-03-16T12:00:00.000Z" title="发表于 2026-03-16 20:00:00">2026-03-16</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Yufeng He</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></span></div><div class="footer_custom_text"><span style="color:#39C5BB">Powered by Hexo & Butterfly</span> | <span style="color:#6EC6FF">何宇峰 Yufeng He</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.4"></script><script src="/js/main.js?v=5.5.4"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.9/dist/fancybox/fancybox.umd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page@5.2.0/instantpage.min.js" type="module"></script><script src="https://cdn.jsdelivr.net/npm/node-snackbar@0.1.16/dist/snackbar.min.js"></script><div class="js-pjax"><script>(() => {
+  const parseViewBox = viewBox => {
+    if (!viewBox) return null
+    const parts = viewBox.trim().split(/[\s,]+/).map(n => Number(n))
+    if (parts.length !== 4 || parts.some(n => Number.isNaN(n))) return null
+    return parts
+  }
+
+  const getSvgViewBox = svg => {
+    const attr = parseViewBox(svg.getAttribute('viewBox'))
+    if (attr) return attr
+
+    // Fallback: use bbox to build a viewBox
+    try {
+      const bbox = svg.getBBox()
+      if (bbox && bbox.width && bbox.height) return [bbox.x, bbox.y, bbox.width, bbox.height]
+    } catch (e) {
+      // getBBox may fail on some edge cases; ignore
+    }
+
+    const w = Number(svg.getAttribute('width')) || 0
+    const h = Number(svg.getAttribute('height')) || 0
+    if (w > 0 && h > 0) return [0, 0, w, h]
+    return [0, 0, 100, 100]
+  }
+
+  const setSvgViewBox = (svg, vb) => {
+    svg.setAttribute('viewBox', `${vb[0]} ${vb[1]} ${vb[2]} ${vb[3]}`)
+  }
+
+  const clamp = (v, min, max) => Math.max(min, Math.min(max, v))
+
+  const openSvgInNewTab = ({ source, initViewBox }) => {
+    const getClonedSvg = () => {
+      if (typeof source === 'string') {
+        const template = document.createElement('template')
+        template.innerHTML = source.trim()
+        const svg = template.content.querySelector('svg')
+        return svg ? svg.cloneNode(true) : null
+      }
+      if (source && typeof source.cloneNode === 'function') {
+        return source.cloneNode(true)
+      }
+      return null
+    }
+
+    const clone = getClonedSvg()
+    if (!clone) return
+    if (initViewBox && initViewBox.length === 4) {
+      clone.setAttribute('viewBox', initViewBox.join(' '))
+    }
+    if (!clone.getAttribute('xmlns')) clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
+    if (!clone.getAttribute('xmlns:xlink') && clone.outerHTML.includes('xlink:')) {
+      clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink')
+    }
+    // inject background to match current theme
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
+    const bg = getComputedStyle(document.body).backgroundColor || (isDark ? '#1e1e1e' : '#ffffff')
+    if (!clone.style.background) clone.style.background = bg
+
+    const serializer = new XMLSerializer()
+    const svgSource = serializer.serializeToString(clone)
+    const htmlSource = `<!doctype html><html><head><meta charset="utf-8" />
+      <style>
+        html, body { width: 100%; height: 100%; margin: 0; display: flex; align-items: center; justify-content: center; background: ${bg}; }
+        svg { max-width: 100%; max-height: 100%; height: auto; width: auto; }
+      </style>
+      </head><body>${svgSource}</body></html>`
+    const blob = new Blob([htmlSource], { type: 'text/html;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    window.open(url, '_blank', 'noopener')
+    setTimeout(() => URL.revokeObjectURL(url), 30000)
+  }
+
+  const attachMermaidViewerButton = wrap => {
+    let btn = wrap.querySelector('.mermaid-open-btn')
+    if (!btn) {
+      btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'mermaid-open-btn'
+      wrap.appendChild(btn)
+    }
+
+    btn.innerHTML = '<i class="fa fa-search fa-fw" aria-hidden="true"></i>'
+
+    if (!btn.__mermaidViewerBound) {
+      btn.addEventListener('click', e => {
+        e.preventDefault()
+        e.stopPropagation()
+        const svg = wrap.__mermaidOriginalSvg || wrap.querySelector('svg')
+        if (!svg) return
+        const initViewBox = wrap.__mermaidInitViewBox
+        if (typeof svg === 'string') {
+          openSvgInNewTab({ source: svg, initViewBox })
+          return
+        }
+        openSvgInNewTab({ source: svg, initViewBox })
+      })
+      btn.__mermaidViewerBound = true
+    }
+  }
+
+  // Zoom around a point (px, py) in the SVG viewport (in viewBox coordinates)
+  const zoomAtPoint = (vb, factor, px, py) => {
+    const w = vb[2] * factor
+    const h = vb[3] * factor
+    const nx = px - (px - vb[0]) * factor
+    const ny = py - (py - vb[1]) * factor
+    return [nx, ny, w, h]
+  }
+
+  const initMermaidGestures = wrap => {
+    const svg = wrap.querySelector('svg')
+    if (!svg) return
+
+    // Ensure viewBox exists so gestures always work
+    const initVb = getSvgViewBox(svg)
+    wrap.__mermaidInitViewBox = initVb
+    wrap.__mermaidCurViewBox = initVb.slice()
+    setSvgViewBox(svg, initVb)
+
+    // Avoid binding multiple times on themeChange/pjax
+    if (wrap.__mermaidGestureBound) return
+    wrap.__mermaidGestureBound = true
+
+    // Helper: map client (viewport) coordinate -> viewBox coordinate
+    const clientToViewBox = (clientX, clientY) => {
+      const rect = svg.getBoundingClientRect()
+      const vb = wrap.__mermaidCurViewBox || getSvgViewBox(svg)
+      const x = vb[0] + (clientX - rect.left) * (vb[2] / rect.width)
+      const y = vb[1] + (clientY - rect.top) * (vb[3] / rect.height)
+      return { x, y, rect, vb }
+    }
+
+    const state = {
+      pointers: new Map(),
+      startVb: null,
+      startDist: 0,
+      startCenter: null
+    }
+
+    const clampVb = vb => {
+      const init = wrap.__mermaidInitViewBox || vb
+      const minW = init[2] * 0.1
+      const maxW = init[2] * 10
+      const minH = init[3] * 0.1
+      const maxH = init[3] * 10
+      vb[2] = clamp(vb[2], minW, maxW)
+      vb[3] = clamp(vb[3], minH, maxH)
+      return vb
+    }
+
+    const setCurVb = vb => {
+      vb = clampVb(vb)
+      wrap.__mermaidCurViewBox = vb
+      setSvgViewBox(svg, vb)
+    }
+
+    const onPointerDown = e => {
+      // Allow only primary button for mouse
+      if (e.pointerType === 'mouse' && e.button !== 0) return
+      svg.setPointerCapture(e.pointerId)
+      state.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+
+      if (state.pointers.size === 1) {
+        state.startVb = (wrap.__mermaidCurViewBox || getSvgViewBox(svg)).slice()
+      } else if (state.pointers.size === 2) {
+        const pts = [...state.pointers.values()]
+        const dx = pts[0].x - pts[1].x
+        const dy = pts[0].y - pts[1].y
+        state.startDist = Math.hypot(dx, dy)
+        state.startVb = (wrap.__mermaidCurViewBox || getSvgViewBox(svg)).slice()
+        state.startCenter = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 }
+      }
+    }
+
+    const onPointerMove = e => {
+      if (!state.pointers.has(e.pointerId)) return
+      state.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+
+      // Pan with 1 pointer
+      if (state.pointers.size === 1 && state.startVb) {
+        const p = [...state.pointers.values()][0]
+        const prev = { x: e.clientX - e.movementX, y: e.clientY - e.movementY }
+        // movementX/Y unreliable on touch, compute from stored last position
+        const last = wrap.__mermaidLastSinglePointer || p
+        const dxClient = p.x - last.x
+        const dyClient = p.y - last.y
+        wrap.__mermaidLastSinglePointer = p
+
+        const { rect } = clientToViewBox(p.x, p.y)
+        const vb = (wrap.__mermaidCurViewBox || getSvgViewBox(svg)).slice()
+        const dx = dxClient * (vb[2] / rect.width)
+        const dy = dyClient * (vb[3] / rect.height)
+        setCurVb([vb[0] - dx, vb[1] - dy, vb[2], vb[3]])
+        return
+      }
+
+      // Pinch zoom with 2 pointers
+      if (state.pointers.size === 2 && state.startVb && state.startDist > 0) {
+        const pts = [...state.pointers.values()]
+        const dx = pts[0].x - pts[1].x
+        const dy = pts[0].y - pts[1].y
+        const dist = Math.hypot(dx, dy)
+        if (!dist) return
+        const factor = state.startDist / dist // dist bigger => zoom in (viewBox smaller)
+
+        const cx = (pts[0].x + pts[1].x) / 2
+        const cy = (pts[0].y + pts[1].y) / 2
+        const centerClient = { x: cx, y: cy }
+
+        const pxy = clientToViewBox(centerClient.x, centerClient.y)
+        const cpx = pxy.x
+        const cpy = pxy.y
+
+        const vb = zoomAtPoint(state.startVb, factor, cpx, cpy)
+        setCurVb(vb)
+      }
+    }
+
+    const onPointerUpOrCancel = e => {
+      state.pointers.delete(e.pointerId)
+      if (state.pointers.size === 0) {
+        state.startVb = null
+        state.startDist = 0
+        state.startCenter = null
+        wrap.__mermaidLastSinglePointer = null
+      } else if (state.pointers.size === 1) {
+        // reset single pointer baseline to avoid jump
+        wrap.__mermaidLastSinglePointer = [...state.pointers.values()][0]
+      }
+    }
+
+    // Wheel zoom (mouse/trackpad)
+    const onWheel = e => {
+      // ctrlKey on mac trackpad pinch; we treat both as zoom
+      e.preventDefault()
+      const delta = e.deltaY
+      const zoomFactor = delta > 0 ? 1.1 : 0.9
+      const { x, y } = clientToViewBox(e.clientX, e.clientY)
+      const vb = (wrap.__mermaidCurViewBox || getSvgViewBox(svg)).slice()
+      setCurVb(zoomAtPoint(vb, zoomFactor, x, y))
+    }
+
+    const onDblClick = () => {
+      const init = wrap.__mermaidInitViewBox
+      if (!init) return
+      wrap.__mermaidCurViewBox = init.slice()
+      setSvgViewBox(svg, init)
+    }
+
+    svg.addEventListener('pointerdown', onPointerDown)
+    svg.addEventListener('pointermove', onPointerMove)
+    svg.addEventListener('pointerup', onPointerUpOrCancel)
+    svg.addEventListener('pointercancel', onPointerUpOrCancel)
+    svg.addEventListener('wheel', onWheel, { passive: false })
+    svg.addEventListener('dblclick', onDblClick)
+  }
+
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+
+      // Clear old render (themeChange/pjax will rerun)
+      const oldSvg = item.querySelector('svg')
+      if (oldSvg) oldSvg.remove()
+      item.__mermaidGestureBound = false
+
+      const config = mermaidSrc.dataset.config ? JSON.parse(mermaidSrc.dataset.config) : {}
+      if (!config.theme) {
+        config.theme = theme
+      }
+      const mermaidThemeConfig = `%%{init: ${JSON.stringify(config)}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+        if (true) initMermaidGestures(item)
+        item.__mermaidOriginalSvg = svg
+        if (true) attachMermaidViewerButton(item)
+      }
+
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid@11.12.2/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script></div><script>
+  (function() {
+    var sakuraCount = 20;
+    var style = document.createElement('style');
+    style.textContent = `
+      .sakura-petal {
+        position: fixed;
+        top: -10px;
+        z-index: 9998;
+        pointer-events: none;
+        opacity: 0.6;
+        animation-timing-function: linear;
+        animation-iteration-count: infinite;
+      }
+      @keyframes sakuraFall {
+        0% { top: -5%; transform: translateX(0px) rotate(0deg); opacity: 0.7; }
+        25% { transform: translateX(30px) rotate(90deg); opacity: 0.6; }
+        50% { transform: translateX(-20px) rotate(180deg); opacity: 0.5; }
+        75% { transform: translateX(40px) rotate(270deg); opacity: 0.4; }
+        100% { top: 105%; transform: translateX(10px) rotate(360deg); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+
+    function createPetal() {
+      var petal = document.createElement('div');
+      petal.className = 'sakura-petal';
+      petal.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12"><path d="M6 0C6 0 8 4 12 6C8 8 6 12 6 12C6 12 4 8 0 6C4 4 6 0 6 0Z" fill="rgba(255,183,197,0.7)"/></svg>';
+      petal.style.left = Math.random() * 100 + 'vw';
+      petal.style.animationName = 'sakuraFall';
+      petal.style.animationDuration = (8 + Math.random() * 12) + 's';
+      petal.style.animationDelay = Math.random() * 10 + 's';
+      document.body.appendChild(petal);
+      setTimeout(function() { petal.remove(); }, 25000);
+    }
+
+    for (var i = 0; i < sakuraCount; i++) {
+      setTimeout(createPetal, i * 500);
+    }
+    setInterval(function() { createPetal(); }, 3000);
+  })();
+</script>
+<script>
+  (function() {
+    var quotes = [
+      '「これが、私の最後の、電磁砲（レールガン）だ。」—— 御坂美琴 ⚡',
+      '「我想要传达的心意，一定能到达的吧。」—— 千早爱音 🎸',
+      '「我不会消失的，因为我活在大家的心中。」—— 初音未来 🎵',
+      '「世界，请停下来吧。」—— 十六夜咲夜 🔪',
+      '「无论如何，审判将继续。」—— 芙宁娜 💧',
+      '「誰も、もう二度と傷つけさせない。」—— 御坂美琴 ⚡',
+      '「就算迷茫也要继续走下去。」—— 千早爱音 🎸',
+    ];
+    var idx = 0;
+    function rotateQuote() {
+      var el = document.querySelector('.card-announcement .content');
+      if (el) {
+        el.style.opacity = '0';
+        setTimeout(function() {
+          idx = (idx + 1) % quotes.length;
+          el.textContent = quotes[idx];
+          el.style.opacity = '1';
+        }, 500);
+      }
+    }
+    setInterval(rotateQuote, 8000);
+    // 为公告card添加过渡动画
+    var style = document.createElement('style');
+    style.textContent = '.card-announcement .content { transition: opacity 0.5s ease; }';
+    document.head.appendChild(style);
+  })();
+</script>
+<script>
+  (function() {
+    var clickTexts = ['⚡超电磁炮!', '🎸MyGO!!!!!', '🎵ミク♪', '🔪咲夜の世界', '💧芙宁娜审判', '❤', 'かわいい!', 'すごい!'];
+    var idx = 0;
+    document.addEventListener('click', function(e) {
+      var span = document.createElement('span');
+      span.textContent = clickTexts[idx];
+      idx = (idx + 1) % clickTexts.length;
+      span.style.cssText = 'position:fixed;z-index:99999;left:' + e.clientX + 'px;top:' + e.clientY + 'px;color:#39C5BB;font-size:16px;font-weight:bold;pointer-events:none;user-select:none;animation:clickTextFade 1.5s ease forwards;text-shadow:0 0 10px rgba(57,197,187,0.8);';
+      document.body.appendChild(span);
+      setTimeout(function() { span.remove(); }, 1500);
+    });
+    var style = document.createElement('style');
+    style.textContent = '@keyframes clickTextFade { 0% { opacity:1; transform:translateY(0) scale(1); } 100% { opacity:0; transform:translateY(-60px) scale(1.3); } }';
+    document.head.appendChild(style);
+  })();
+</script>
+<canvas class="fireworks" mobile="false"></canvas><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/dist/fireworks.min.js"></script><script id="canvas_nest" defer="defer" color="57,197,187" opacity="0.5" zIndex="-1" count="80" mobile="false" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/dist/canvas-nest.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js" defer="defer"></script><script>document.addEventListener('DOMContentLoaded', () => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      true
+        ? pjax.loadUrl('/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})</script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章..." type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=5.5.4"></script></div></div></body></html>
