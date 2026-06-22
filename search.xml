@@ -20,13 +20,13 @@
       
         <tags>
             
-            <tag> Claude Code </tag>
-            
             <tag> AI Agent </tag>
             
             <tag> 开源 </tag>
             
             <tag> Python </tag>
+            
+            <tag> Claude Code </tag>
             
             <tag> 开发工具 </tag>
             
@@ -158,9 +158,9 @@
             
             <tag> Python </tag>
             
-            <tag> 开发工具 </tag>
-            
             <tag> 代码阅读 </tag>
+            
+            <tag> 开发工具 </tag>
             
         </tags>
       
@@ -218,8 +218,6 @@
       
         <tags>
             
-            <tag> Claude Code </tag>
-            
             <tag> AI Agent </tag>
             
             <tag> LLM </tag>
@@ -227,6 +225,8 @@
             <tag> 开源 </tag>
             
             <tag> Python </tag>
+            
+            <tag> Claude Code </tag>
             
         </tags>
       
@@ -251,8 +251,6 @@
       
         <tags>
             
-            <tag> Claude Code </tag>
-            
             <tag> AI Agent </tag>
             
             <tag> LLM </tag>
@@ -260,6 +258,8 @@
             <tag> 开源 </tag>
             
             <tag> Python </tag>
+            
+            <tag> Claude Code </tag>
             
         </tags>
       
@@ -284,9 +284,9 @@
       
         <tags>
             
-            <tag> Claude Code </tag>
-            
             <tag> AI Agent </tag>
+            
+            <tag> Claude Code </tag>
             
             <tag> Anthropic </tag>
             
