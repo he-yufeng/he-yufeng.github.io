@@ -22,13 +22,13 @@
             
             <tag> AI Agent </tag>
             
-            <tag> 开源 </tag>
-            
-            <tag> Python </tag>
-            
             <tag> Claude Code </tag>
             
             <tag> 开发工具 </tag>
+            
+            <tag> 开源 </tag>
+            
+            <tag> Python </tag>
             
         </tags>
       
@@ -55,211 +55,13 @@
             
             <tag> AI Agent </tag>
             
-            <tag> LLM </tag>
-            
             <tag> 开源 </tag>
             
             <tag> Python </tag>
+            
+            <tag> LLM </tag>
             
             <tag> 调试 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>做 LLM 应用半年，我给自己攒了一套开源工具箱</title>
-      <link href="/2026/05/24/llm-open-source-toolbox/"/>
-      <url>/2026/05/24/llm-open-source-toolbox/</url>
-      
-        <content type="html"><![CDATA[<p>做 LLM 应用做了一年，写了不少代码，也烧了不少 API 费用。</p><p>过程中反复被一些小问题折腾：想给开源项目贡献代码但不知道从哪找合适的 issue；每次换项目都要手写一遍 AI 助手的规则文件；改了 prompt 不确定效果是变好还是变坏；月底一看 API 账单吓一跳但不知道钱花在哪了；有几千条数据想批量用 LLM 处理但手动写 async retry 太烦。</p><p>每个问题都不大，但每次遇到都浪费时间。于是一个一个做成了工具，全部开源。<code>pip install</code> 一行装好，解决一个痛点。</p><h2 id="GitSense-—-找开源贡献机会"><a href="#GitSense-—-找开源贡献机会" class="headerlink" title="GitSense — 找开源贡献机会"></a>GitSense — 找开源贡献机会</h2><p>我给 vLLM、PyTorch 等项目贡献了 35 个 merged PR，很多 issue 就是 GitSense 帮我发现的。</p><p>它做的事情很简单：扫 GitHub 上的热门仓库，找到 open 且没人认领的 issue，然后用 LLM 分析这些 issue 跟你的技能有多匹配（1-10 分打分），还会给出怎么下手的建议。现在还加了 repo radar，用来判断一个仓库值不值得花周末去投 PR：维护活跃度、review 节奏、issue 质量、PR merge 倾向都会看。</p><figure class="highlight dsconfig"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">pip</span> <span class="string">install</span> <span class="string">gitsense-radar</span></span><br><span class="line"><span class="string">gitsense</span> <span class="string">scan</span> <span class="built_in">--skills</span> <span class="string">&quot;python,pytorch,llm&quot;</span> <span class="built_in">--min-stars</span> <span class="string">1000</span></span><br></pre></td></tr></table></figure><p>想刷开源履历的、准备面试的、参加 hackathon 的，都能用。不想烧 LLM API 费用也行，加 <code>--no-llm</code> 纯用 GitHub 搜索。</p><h2 id="RuleForge-—-自动生成-AI-助手规则"><a href="#RuleForge-—-自动生成-AI-助手规则" class="headerlink" title="RuleForge — 自动生成 AI 助手规则"></a>RuleForge — 自动生成 AI 助手规则</h2><p>用 Claude Code 的人都知道 CLAUDE.md 的重要性。用 Cursor 的人也知道 .cursorrules。但手写这些规则文件很麻烦——你得把项目的语言、框架、lint 配置、测试框架、CI 系统全写清楚。</p><p>RuleForge 自动扫描你的代码库，检测 20+ 种语言和 30+ 种框架，生成对应的规则文件。</p><figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">pip <span class="keyword">install </span>ruleforge</span><br><span class="line">ruleforge <span class="keyword">scan </span>. --format claude  <span class="comment"># 生成 CLAUDE.md</span></span><br><span class="line">ruleforge <span class="keyword">scan </span>. --format cursor  <span class="comment"># 生成 .cursorrules</span></span><br></pre></td></tr></table></figure><p>不是通用模板，是根据项目实际用了什么生成的。用了 pytest 就会写 pytest 相关的规则，用了 Docker 就会加 Docker 的约束。</p><h2 id="PromptDiff-—-Prompt-的语义-Diff"><a href="#PromptDiff-—-Prompt-的语义-Diff" class="headerlink" title="PromptDiff — Prompt 的语义 Diff"></a>PromptDiff — Prompt 的语义 Diff</h2><p>改 prompt 是 LLM 开发最常见的操作，但改完之后效果是变好了还是变差了？大多数人靠感觉。</p><p>PromptDiff 把两个版本的 prompt 跑同一组测试用例，用 embedding cosine similarity 做语义比较，还能用 LLM-as-judge 分类哪些是改进、哪些是退步。</p><figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">pip <span class="keyword">install </span><span class="string">&quot;promptdiff[semantic]&quot;</span></span><br><span class="line">promptdiff <span class="built_in">compare</span> <span class="built_in">v1</span>.txt v2.txt --test-cases cases.<span class="keyword">jsonl</span></span><br></pre></td></tr></table></figure><p>终端里直接看 diff 报告，也能输出 JSON 接 CI。每次改 prompt 之前跑一下，心里有数。</p><h2 id="TokenTracker-—-LLM-花费追踪"><a href="#TokenTracker-—-LLM-花费追踪" class="headerlink" title="TokenTracker — LLM 花费追踪"></a>TokenTracker — LLM 花费追踪</h2><p>改一行 import 就能追踪所有 LLM 调用的 token 和花费。</p><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 之前</span></span><br><span class="line"><span class="keyword">from</span> openai <span class="keyword">import</span> OpenAI</span><br><span class="line"><span class="comment"># 之后</span></span><br><span class="line"><span class="keyword">from</span> tokentracker <span class="keyword">import</span> OpenAI  <span class="comment"># 就改这一行</span></span><br></pre></td></tr></table></figure><p>零配置，数据存本地 SQLite，不传任何东西到云端。CLI 看按天、按模型的花费明细。做量化实验的时候用它盯着 API 费用特别有用。</p><h2 id="BatchLLM-—-批量调-LLM"><a href="#BatchLLM-—-批量调-LLM" class="headerlink" title="BatchLLM — 批量调 LLM"></a>BatchLLM — 批量调 LLM</h2><p>CSV 丢进去，每行用 LLM 处理一遍，结果写回去。自动并发、自动重试、断点恢复。</p><figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">pip <span class="keyword">install </span><span class="keyword">batchllm</span></span><br><span class="line"><span class="keyword"></span><span class="keyword">batchllm </span>run data.csv --prompt <span class="string">&quot;总结这段文本：&#123;text&#125;&quot;</span> --model gpt<span class="number">-4</span>o</span><br></pre></td></tr></table></figure><p>处理一万行数据跑到一半断了？下次从断点继续，不重复处理已完成的行。跑之前还能用 <code>batchllm estimate</code> 估算要花多少钱。</p><h2 id="串在一起用"><a href="#串在一起用" class="headerlink" title="串在一起用"></a>串在一起用</h2><p>这五个工具我自己的使用链路是这样的：</p><p>GitSense 找到值得贡献的 issue → 用 RuleForge 生成 AI 助手规则 → 用 PromptDiff 调试 prompt → 用 BatchLLM 批量处理评测数据 → 用 TokenTracker 盯 API 花费。</p><p>不是每个场景都用得上全部五个，但做 LLM 开发总会在某个环节需要其中一两个。</p><h2 id="这些工具背后的项目"><a href="#这些工具背后的项目" class="headerlink" title="这些工具背后的项目"></a>这些工具背后的项目</h2><p>这五个小工具是做大项目过程中「顺手」写的。大项目是什么？</p><p>CoreCoder 是从 Claude Code 源码里提炼的 Python 核心重写，AnyCoder 在它基础上做了日用版本、支持 100+ 模型。ContractGuard 是 AI 合同审查，FindJobs-Agent 是大厂岗位智能匹配。</p><p>这些项目的开发和测试过程就是上面五个工具诞生的原因。GitSense 帮我找 issue，RuleForge 帮我配 AI 助手规则，PromptDiff 帮我调 prompt，TokenTracker 帮我盯成本，BatchLLM 帮我批评测数据。工具是副产品，但用起来比主项目还频繁。</p><p>GitHub 主页：<a href="https://github.com/he-yufeng">github.com&#x2F;he-yufeng</a>。觉得有用的话，去对应仓库点个 star，也欢迎提 issue 和 PR。</p><hr><p>我是何宇峰，在做 AI Agent 相关的工程和开源。更多项目在我的 <a href="https://github.com/he-yufeng">GitHub</a>。我目前在找实习 &#x2F; 看秋招机会，欢迎内推或聊聊：<a href="https://www.linkedin.com/in/yufenghe">领英</a>。</p>]]></content>
-      
-      
-      <categories>
-          
-          <category> 技术 </category>
-          
-      </categories>
-      
-      
-        <tags>
-            
-            <tag> AI Agent </tag>
-            
-            <tag> LLM </tag>
-            
-            <tag> 开源 </tag>
-            
-            <tag> Python </tag>
-            
-            <tag> 开发工具 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>大厂招聘官网几千个岗位不知投哪个？我写了个开源 Agent 帮你找到真正匹配的岗位</title>
-      <link href="/2026/05/04/findjobs-agent-job-matching/"/>
-      <url>/2026/05/04/findjobs-agent-job-matching/</url>
-      
-        <content type="html"><![CDATA[<p>你有没有过这种经历：打开大厂招聘官网，搜「算法」，出来 1300 多个结果，标题全长一个样。「算法工程师」「算法研究员」区别在哪？不知道，得一个个点进去看 JD 岗位描述。</p><p>看完一个要两三分钟。筛选出的四五百个全看完，一整天就没了。</p><p>所以大多数人不看。靠标题猜一下，差不多的就投了。</p><p>这套逻辑从 2010 年就没变过。</p><p>我之前帮一个学弟投简历，他投了 30 个「算法工程师」全挂。我帮他看了一下 JD，其中 20 个要的是推荐系统方向，跟他的技能树完全不搭。不是他不行，是他根本没时间搞清楚每个岗位到底要什么，而现有的工具也帮不上忙。</p><p>所以我写了一个项目，我自己去年秋招用得很开心，于是开源出来。GitHub：<a href="https://github.com/he-yufeng/FindJobs-Agent">github.com&#x2F;he-yufeng&#x2F;FindJobs-Agent</a></p><h2 id="大厂招聘页的一些有意思的发现"><a href="#大厂招聘页的一些有意思的发现" class="headerlink" title="大厂招聘页的一些有意思的发现"></a>大厂招聘页的一些有意思的发现</h2><p>写完工具之后我爬了几千个岗位做了结构化分析。有几个发现可能对你有用：</p><p><strong>「算法工程师」这四个字已经没有信息量了。</strong> 同样叫「算法工程师」的岗位，有的要推荐系统，有的要 CV，有的要 NLP，有的要搜索引擎，技能要求重叠度不到 30%。只看岗位名称投简历，命中率跟随机差不多。</p><p><strong>JD 里的「熟悉 xx 优先」才是真正的硬要求。</strong> 很多公司把真正的核心技能写在「加分项」或「优先」里而不是「必要条件」里。如果你只看「必要条件」来准备，很可能漏掉面试的重点。</p><p><strong>同名岗位在不同大厂差异巨大。</strong> 字节的「推荐算法」和腾讯的「推荐算法」，名字一样，但字节更偏 AB 实验和工程落地，腾讯更看模型创新和论文产出。同一份简历投这两家，可能一家拿面试一家石沉大海。</p><p><strong>学历「门槛」和学历「实际要求」是两码事。</strong> JD 写「本科及以上」的岗位，实际招的可能全是硕士。LLM 分析能从 JD 里的其他线索推断出真实偏好。</p><p>这些你手动看 JD 也能隐约感觉到，但跑几百个岗位结构化对比之后，结论就非常清晰了。</p><h2 id="做了什么"><a href="#做了什么" class="headerlink" title="做了什么"></a>做了什么</h2><p>FindJobs-Agent，一个 LLM 驱动的求职辅助系统。核心解决的就是「大厂官网几百个岗位你不可能一个个看」这个问题。</p><p><strong>1. 岗位批量爬取。</strong> 支持腾讯、字节、网易、Amazon、阿里、美团等大厂招聘页。API 爬取 + Selenium 双模式，一个命令拉几百个岗位的完整 JD，自动清洗格式化。你不用一个一个点进二级页面了。</p><figure class="highlight apache"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 一行命令拉腾讯和网易各 300 个岗位</span></span><br><span class="line"><span class="attribute">python</span> job_crawler_v2.py -c tencent netease -m <span class="number">300</span></span><br></pre></td></tr></table></figure><p><strong>2. LLM 智能分析。</strong> 对每个 JD 做语义级别的解析：学历要求、专业方向、技能标签（带 1-5 分重要性评分）、岗位二级分类。不是关键词匹配，是真的读懂了 JD 在说什么。</p><p><strong>3. 简历智能匹配。</strong> 上传你的简历（PDF&#x2F;Word），自动提取你的技能标签和水平，跟每个岗位计算匹配度。排序输出：最匹配的排最前面，每个岗位标注了你具体缺什么技能。</p><p>这步省的时间最多。400 个岗位你不用逐个看了，直接看匹配度排名前 20 的就行。而且它告诉你缺什么，你可以针对性地补。</p><p><strong>4. AI 模拟面试。</strong> 选一个你要面的岗位，AI 根据那个岗位的 JD 生成面试题。不是通用八股，是针对那个岗位的。</p><p>前后端完整可跑，React 前端 + Flask API + LLM Agent。</p><h2 id="跟-BOSS-直聘-牛客有什么不同"><a href="#跟-BOSS-直聘-牛客有什么不同" class="headerlink" title="跟 BOSS 直聘 &#x2F; 牛客有什么不同"></a>跟 BOSS 直聘 &#x2F; 牛客有什么不同</h2><p>BOSS 直聘的「智能推荐」本质是关键词匹配。你简历写了 Python，JD 里有 Python，就算匹配了。但岗位真正要的可能是 Python + Spark + 特征工程 + AB 实验经验这个组合，只有 Python 根本不够。</p><p>而且 BOSS 直聘的岗位信息跟大厂官网不完全一致，JD 经常是精简版的。很多细节（团队方向、论文要求、具体技术栈版本）只有官网的 JD 才有。</p><p>牛客的面经很有用，但它是按公司整理的，不是按岗位的技能要求整理的。你可能花了两天准备操作系统和计网八股文，结果面的那个岗位压根不问这些。</p><p>FindJobs-Agent 的思路是：<strong>先用 LLM 读懂每个岗位的 JD，再用你的简历去匹配，然后告诉你投哪些、怎么准备。</strong></p><h2 id="AI-面试长什么样"><a href="#AI-面试长什么样" class="headerlink" title="AI 面试长什么样"></a>AI 面试长什么样</h2><p>选了一个「推荐算法工程师」的岗位，进入面试模式。AI 根据 JD 生成了这些问题：</p><figure class="highlight avrasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="symbol">Q1:</span> 你在推荐系统中用过哪些召回策略？能对比一下双塔模型和图召回的优劣吗？</span><br><span class="line"><span class="symbol">Q2:</span> 描述一下你做过的一次 AB 实验。实验设计、分流方式、评估指标分别是什么？遇到过 peeking problem 吗？</span><br><span class="line"><span class="symbol">Q3:</span> 假设线上推荐的 CTR 突然下降了 <span class="number">5</span>%，你会怎么排查？</span><br></pre></td></tr></table></figure><p>注意：没有问「介绍一下 Transformer 的注意力机制」或者「TCP 三次握手」。因为这个岗位的 JD 没提这些。问题是从 JD 的实际要求生成的。</p><p>回答完每道题会收到即时反馈：</p><figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">你提到了协同过滤和双塔模型的对比，这部分答得不错。但 <span class="keyword">JD </span>里特别提到了「图谱召回」，</span><br><span class="line">建议补充图神经网络在推荐场景的应用（如 PinSage、LightGCN），以及如何处理稀疏图的冷启动问题。</span><br></pre></td></tr></table></figure><p>比背八股文有针对性多了。面试官问的就是 JD 里的东西，你准备的也应该是。</p><h2 id="一个真实案例"><a href="#一个真实案例" class="headerlink" title="一个真实案例"></a>一个真实案例</h2><p>我那个学弟的故事，用了工具之后是这样的：</p><ol><li>爬了腾讯、字节、阿里三家的算法岗，一共 380 个</li><li>上传简历做匹配，发现自己投的 30 个「算法工程师」里，只有 8 个匹配度超过 60%</li><li>集中精力投那 8 个，简历针对性地改了一版，把匹配的技能突出放在前面</li><li>用 AI 面试模块练了两天那 8 个岗位的面试题</li><li>最后拿到了其中 3 家的面试机会，2 个 offer</li></ol><p>工具只是辅助，他基础本身不错。但如果继续海投那 30 个不匹配的，大概率还是 0 回复。</p><h2 id="谁用得上"><a href="#谁用得上" class="headerlink" title="谁用得上"></a>谁用得上</h2><p><strong>应届生。</strong> 春招秋招的大厂官网，每家几百个岗位，你不可能全看。用这个工具先筛一遍，知道哪些值得投。</p><p><strong>准备面试的人。</strong> 别背通用八股了。用 AI 根据你要面的那个具体岗位的 JD 出面试题，命中率高得多。</p><p>找工作最大的成本不是投简历的时间，是信息不对称。你不知道岗位真正要什么，就没法对症下药。这个工具帮你把几百个岗位的 JD 变成结构化的技能需求表，然后告诉你投哪些、怎么准备。</p><p>正在找工作的话试试看。有用请 Star，转发给正在春招秋招的朋友。</p><p>GitHub：<a href="https://github.com/he-yufeng/FindJobs-Agent">github.com&#x2F;he-yufeng&#x2F;FindJobs-Agent</a></p><hr><p>我是何宇峰，在做 AI Agent 相关的工程和开源。更多项目在我的 <a href="https://github.com/he-yufeng">GitHub</a>。我目前在找实习 &#x2F; 看秋招机会，欢迎内推或聊聊：<a href="https://www.linkedin.com/in/yufenghe">领英</a>。</p>]]></content>
-      
-      
-      <categories>
-          
-          <category> 技术 </category>
-          
-      </categories>
-      
-      
-        <tags>
-            
-            <tag> AI Agent </tag>
-            
-            <tag> LLM </tag>
-            
-            <tag> 开源 </tag>
-            
-            <tag> Python </tag>
-            
-            <tag> 求职 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>DeepWiki 太贵、deepwiki-open 要 Docker：我写了个 pip install 就能用的开源替代品</title>
-      <link href="/2026/04/21/repowiki-deepwiki-alternative/"/>
-      <url>/2026/04/21/repowiki-deepwiki-alternative/</url>
-      
-        <content type="html"><![CDATA[<p>接手别人的代码库最痛苦的不是代码写得烂，是不知道从哪开始看。</p><p>文件几百个，目录层层嵌套，README 要么没有要么过时了。你不知道哪些文件是核心，哪些只是辅助。随便点进一个文件开始读，很快就迷失在调用链里。</p><p>DeepWiki 在一定程度上解决了这个问题——给个 GitHub 链接，自动生成 wiki 文档。但它是商业 SaaS，私有代码得传到他们服务器上。公司的代码不可能这么干。</p><p>deepwiki-open（15k+ star）是个开源替代方案，但团队已经去做 AsyncReview 了，基本进入维护模式。部署也麻烦，需要 Docker Compose + PostgreSQL。</p><p>我想要的东西其实很简单：<code>pip install</code> 一行装好，直接扫本地文件夹，不需要任何外部服务。找了一圈没有，就自己写了。</p><h2 id="RepoWiki"><a href="#RepoWiki" class="headerlink" title="RepoWiki"></a>RepoWiki</h2><figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">pip <span class="keyword">install</span> repowiki</span><br><span class="line">repowiki scan ./your-<span class="keyword">project</span></span><br></pre></td></tr></table></figure><p>扫描完会生成：</p><ul><li><strong>项目概览</strong>：一句话描述、技术栈、功能列表</li><li><strong>模块文档</strong>：每个模块的用途、文件关系、核心概念</li><li><strong>架构图</strong>：Mermaid 格式，GitHub 原生渲染</li><li><strong>阅读指南</strong>：基于 PageRank 的核心文件排名 + 「从这里开始读」路径</li><li><strong>依赖图</strong>：import 解析 + 交互式依赖关系</li></ul><p>最后这个「阅读指南」是我觉得和 DeepWiki 最大的差异。DeepWiki 告诉你代码是什么，RepoWiki 还告诉你从哪开始读、按什么顺序读。对刚接手一个陌生代码库的人来说这很有用。</p><h2 id="和-DeepWiki-deepwiki-open-的对比"><a href="#和-DeepWiki-deepwiki-open-的对比" class="headerlink" title="和 DeepWiki &#x2F; deepwiki-open 的对比"></a>和 DeepWiki &#x2F; deepwiki-open 的对比</h2><table><thead><tr><th>维度</th><th>DeepWiki</th><th>deepwiki-open</th><th>RepoWiki</th></tr></thead><tbody><tr><td>部署</td><td>SaaS，不可自托管</td><td>要 Docker</td><td><code>pip install</code> 零配置</td></tr><tr><td>本地仓库</td><td>不支持</td><td>不支持</td><td>原生支持扫本地文件夹</td></tr><tr><td>导出格式</td><td>只有网页</td><td>只有网页</td><td>Markdown &#x2F; JSON &#x2F; 自包含 HTML</td></tr><tr><td>依赖</td><td>外部服务</td><td>外部服务</td><td>只需 Python + SQLite</td></tr></tbody></table><h2 id="技术选型"><a href="#技术选型" class="headerlink" title="技术选型"></a>技术选型</h2><p>LLM 用 litellm 接入，支持 100+ 模型。依赖图用 networkx 做 PageRank。缓存用 SQLite，按内容 hash 缓存分析结果，同一文件没改过就不重新分析。</p><p>支持 Python、JS&#x2F;TS、Go、Rust、Java 等主流语言的 import 解析。</p><h2 id="相关的项目"><a href="#相关的项目" class="headerlink" title="相关的项目"></a>相关的项目</h2><p>RepoWiki 解决的是程序员「接手代码不知道从哪看」的问题。如果你根本不是程序员，只是想读懂一段代码在干什么，我做了另一个工具 <a href="https://github.com/he-yufeng/CodeABC">CodeABC</a>，用日常类比逐行解释代码，不用任何编程术语。</p><p>如果你对 AI Agent 的实现原理感兴趣，<a href="https://github.com/he-yufeng/CoreCoder">CoreCoder</a> 是我从 Claude Code 的源码里提炼出的 Python 核心重写。RepoWiki 的 LLM 分析模块设计思路很多就来自 CoreCoder 里的实践。</p><p>GitHub：<a href="https://github.com/he-yufeng/RepoWiki">github.com&#x2F;he-yufeng&#x2F;RepoWiki</a></p><hr><p>我是何宇峰，在做 AI Agent 相关的工程和开源。更多项目在我的 <a href="https://github.com/he-yufeng">GitHub</a>。我目前在找实习 &#x2F; 看秋招机会，欢迎内推或聊聊：<a href="https://www.linkedin.com/in/yufenghe">领英</a>。</p>]]></content>
-      
-      
-      <categories>
-          
-          <category> 技术 </category>
-          
-      </categories>
-      
-      
-        <tags>
-            
-            <tag> LLM </tag>
-            
-            <tag> 开源 </tag>
-            
-            <tag> Python </tag>
-            
-            <tag> 代码阅读 </tag>
-            
-            <tag> 开发工具 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>签合同前让 AI 帮你过一遍：我开源了个合同审查 Agent，30 秒找出霸王条款</title>
-      <link href="/2026/04/19/contractguard-contract-review-agent/"/>
-      <url>/2026/04/19/contractguard-contract-review-agent/</url>
-      
-        <content type="html"><![CDATA[<p>之前在北京租房的时候，管家甩过来一份电子合同，催我赶紧签。十几页密密麻麻的小字，我大概扫了一眼，觉得「大公司应该不会太离谱」，就签了。</p><p>后来跟一个做律师的朋友吃饭，他听完说这种条款其实是可以谈的，很多城市对违约金有上限规定，但我签了就认了。他又补了一句：「你们做技术的，怎么不写个工具帮自己看看合同？」</p><p>这句话我记住了。我断断续续地写了一个完善的 Agent，开源出来了。</p><h2 id="做了什么"><a href="#做了什么" class="headerlink" title="做了什么"></a>做了什么</h2><p>ContractGuard，开源的 AI 合同审查 Agent。给它一份合同（PDF、Word、TXT 都行），30 秒出一份结构化报告：</p><ul><li><strong>红旗条款：</strong> 可能让你亏钱、丧失权利的严重问题，附修改建议</li><li><strong>警告条款：</strong> 不至于致命但值得谈的风险点</li><li><strong>保护条款：</strong> 合同中对你有利的部分（别删了）</li><li><strong>缺失保护：</strong> 行业惯例里应该有这份合同没有的条款</li><li><strong>公平评分：</strong> A+ 到 F 打分，一眼看出合同偏向谁</li></ul><p>开源免费，MIT 协议。</p><h2 id="实际效果长什么样"><a href="#实际效果长什么样" class="headerlink" title="实际效果长什么样"></a>实际效果长什么样</h2><p>拿一份典型的租房合同跑一下：</p><figure class="highlight asciidoc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">contractguard scan lease.pdf</span><br><span class="line"></span><br><span class="line"><span class="section">● RED FLAGS (5 found)</span></span><br><span class="line"><span class="section">==================================================</span></span><br><span class="line"><span class="code">  1. 押金不可退还</span></span><br><span class="line"><span class="code">     条款：第三条</span></span><br><span class="line"><span class="code">     &quot;The security deposit is non-refundable and shall</span></span><br><span class="line"><span class="code">      be retained by Landlord upon termination&quot;</span></span><br><span class="line"><span class="code">     大多数司法管辖区要求押金在无损坏时全额退还。</span></span><br><span class="line"><span class="code">     建议：删除&quot;不可退还&quot;表述，明确退还条件和时限。</span></span><br><span class="line"></span><br><span class="line"><span class="code">  2. 出租方可随时无通知进入</span></span><br><span class="line"><span class="code">     条款：第五条</span></span><br><span class="line"><span class="code">     &quot;Landlord shall have the right to enter the Property</span></span><br><span class="line"><span class="code">      at any time, with or without notice&quot;</span></span><br><span class="line"><span class="code">     法律通常要求提前 24-48 小时书面通知。</span></span><br><span class="line"><span class="code">     建议：增加&quot;需提前 24 小时书面通知，紧急情况除外&quot;。</span></span><br><span class="line"></span><br><span class="line"><span class="code">  3. 承租方承担结构维修费用</span></span><br><span class="line"><span class="code">     条款：第四条</span></span><br><span class="line"><span class="code">     水管、电路、承重结构的维修通常是出租方责任。</span></span><br><span class="line"><span class="code">     建议：将承租方责任限定为日常小修。</span></span><br><span class="line"></span><br><span class="line"><span class="section">⚠ WARNINGS (3 found)</span></span><br><span class="line"><span class="section">==================================================</span></span><br><span class="line"><span class="code">  1. 续租租金涨幅上限 15%（建议谈到与 CPI 挂钩）</span></span><br><span class="line"><span class="code">  2. 90 天不续约的通知期（常规是 30-60 天）</span></span><br><span class="line"><span class="code">  3. 转租需出租方同意且可无理由拒绝</span></span><br><span class="line"></span><br><span class="line"><span class="section">✓ PROTECTIONS (2 found)</span></span><br><span class="line"><span class="section">==================================================</span></span><br><span class="line"><span class="code">  ✓ 终止需书面通知</span></span><br><span class="line"><span class="code">  ✓ 合同修改需双方书面同意</span></span><br><span class="line"></span><br><span class="line">⚑ MISSING PROTECTIONS (4)</span><br><span class="line"><span class="code">  ✗ 无居住适宜性保证</span></span><br><span class="line"><span class="code">  ✗ 违约无宽限期</span></span><br><span class="line"><span class="code">  ✗ 滞纳金无上限</span></span><br><span class="line"><span class="code">  ✗ 退房后押金退还无时限约定</span></span><br><span class="line"></span><br><span class="line">FAIRNESS SCORE: D (28/100)</span><br><span class="line"><span class="code">  5 红旗  3 警告  2 保护  4 缺失</span></span><br></pre></td></tr></table></figure><p>我当年签的那份自如合同，如果当时跑一下 ContractGuard，那个「两个月违约金 + 押金不退」会被直接标红。省下来的钱够买好几年 API 了。</p><h2 id="跟直接丢给-ChatGPT-有什么不同"><a href="#跟直接丢给-ChatGPT-有什么不同" class="headerlink" title="跟直接丢给 ChatGPT 有什么不同"></a>跟直接丢给 ChatGPT 有什么不同</h2><p>你当然可以把合同粘到 ChatGPT 里问「帮我看看有没有问题」。我也试过。</p><p><strong>问题一：输出是一大段散文。</strong> 没有分类没有优先级，红旗条款和「这条写得还行」混在一起，你还得自己筛。严重问题藏在第三段第二句，你可能直接跳过了。</p><p><strong>问题二：格式不稳定。</strong> 同一份合同问两次，输出结构可能完全不同。你没法把它接到其他工具里用，也没法做 before&#x2F;after 对比。</p><p><strong>问题三：容易漏东西。</strong> ChatGPT 没有被引导去检查「缺失保护」。它只看合同里有的条款，不会主动想「这份合同缺了什么」。</p><p>ContractGuard 用 Pydantic 模型强制约束 LLM 输出的结构。每次跑出来都是同样的格式：红旗、警告、保护、缺失、评分。LLM 被明确要求从四个维度审查，不会遗漏。</p><p>导出 JSON 接到你的系统里也行：</p><figure class="highlight dsconfig"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">contractguard</span> <span class="string">scan</span> <span class="string">contract</span>.<span class="string">pdf</span> <span class="built_in">--json</span> | <span class="string">jq</span> <span class="string">&#x27;.red_flags | length&#x27;</span></span><br><span class="line"><span class="comment"># 输出：5</span></span><br></pre></td></tr></table></figure><h2 id="技术实现（给开发者看的）"><a href="#技术实现（给开发者看的）" class="headerlink" title="技术实现（给开发者看的）"></a>技术实现（给开发者看的）</h2><p>整个系统其实不复杂，核心就三步：</p><ol><li><strong>文档解析：</strong> PDF 用 pdfplumber（处理复杂排版比 PyPDF2 靠谱），Word 用 python-docx。提取纯文本。</li><li><strong>结构化分析：</strong> 把合同文本 + 精心设计的 system prompt 发给 LLM。prompt 里明确要求从红旗&#x2F;警告&#x2F;保护&#x2F;缺失四个维度审查，并且要求输出严格符合 Pydantic 定义的 JSON Schema。这样 LLM 不会漏检，输出格式也固定。</li><li><strong>报告生成：</strong> 拿到结构化数据后，用 Rich 渲染终端报告（带颜色、图标），或者导出 Markdown&#x2F;JSON。</li></ol><p>Python API 也很简单：</p><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> contractguard.analyzer <span class="keyword">import</span> analyze_contract</span><br><span class="line"><span class="keyword">from</span> contractguard.parser <span class="keyword">import</span> extract_text</span><br><span class="line"></span><br><span class="line">text = extract_text(<span class="string">&quot;lease.pdf&quot;</span>)</span><br><span class="line">result = analyze_contract(text)</span><br><span class="line"></span><br><span class="line"><span class="comment"># result 是 Pydantic model，类型安全</span></span><br><span class="line"><span class="keyword">for</span> flag <span class="keyword">in</span> result.red_flags:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;flag.title&#125;</span>: <span class="subst">&#123;flag.severity&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure><p>想集成到你自己的系统里，几行代码就够了。</p><h2 id="支持什么模型"><a href="#支持什么模型" class="headerlink" title="支持什么模型"></a>支持什么模型</h2><p>任何 OpenAI 兼容 API 都行。推荐 Claude 做审查，效果最好。Kimi 也不错，便宜很多。</p><figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Kimi K2.5</span></span><br><span class="line"><span class="built_in">export</span> <span class="attribute">OPENAI_API_KEY</span>=sk-... <span class="attribute">OPENAI_BASE_URL</span>=https://api.moonshot.ai/v1</span><br><span class="line">contractguard scan contract.pdf --model kimi-k2.5</span><br><span class="line"></span><br><span class="line"><span class="comment"># 通过 OpenRouter 用 Claude（推荐）</span></span><br><span class="line"><span class="built_in">export</span> <span class="attribute">OPENROUTER_API_KEY</span>=sk-or-...</span><br><span class="line">contractguard scan contract.pdf --model anthropic/claude-sonnet-4</span><br><span class="line"></span><br><span class="line"><span class="comment"># 完全本地，合同数据不出机器</span></span><br><span class="line"><span class="built_in">export</span> <span class="attribute">OPENAI_BASE_URL</span>=http://localhost:11434/v1 <span class="attribute">OPENAI_API_KEY</span>=ollama</span><br><span class="line">contractguard scan contract.pdf --model llama3.1</span><br></pre></td></tr></table></figure><h2 id="支持的合同类型"><a href="#支持的合同类型" class="headerlink" title="支持的合同类型"></a>支持的合同类型</h2><table><thead><tr><th>类型</th><th>重点检查</th></tr></thead><tbody><tr><td>租房合同</td><td>押金退还、租金涨幅、进入权、提前终止、维修责任、居住保证</td></tr><tr><td>劳动合同</td><td>竞业范围和时限、知识产权归属、解雇条件、遣散费、试用期</td></tr><tr><td>保密协议</td><td>「机密信息」定义宽度、期限、竞业伪装、独立开发例外</td></tr><tr><td>自由职业</td><td>付款周期、kill fee、IP 归属、范围蔓延、违约责任</td></tr><tr><td>SaaS 条款</td><td>数据归属、自动续费、SLA、单方面修改权、数据迁移</td></tr><tr><td>贷款协议</td><td>利率类型、提前还款罚金、违约触发、担保范围</td></tr><tr><td>购销合同</td><td>质保条款、退换政策、责任限额、争议解决、不可抗力</td></tr></tbody></table><p>也支持中文合同。模型用 Claude 或 GPT 时，中文审查效果跟英文差不多。</p><h2 id="常见问题"><a href="#常见问题" class="headerlink" title="常见问题"></a>常见问题</h2><p><strong>中文合同能用吗？</strong> 能。用 Claude 或 GPT 时，中文审查效果跟英文基本一样。我测试的那几份北京长租公寓合同和互联网公司劳动合同全是中文的，都正确识别到了问题。Kimi 对中文也不错，而且更便宜。</p><p><strong>结果准吗？</strong> 大模型对合同条款的理解能力已经很强了，常见的坑（押金不退、竞业过宽、单方面终止）基本不会漏。但它不了解你所在城市的具体法规细则（比如上海和深圳对押金退还的时限要求不同），也可能对多条款交叉影响的复杂情况判断不够准。把它当第一道筛子，发现红旗了再找律师确认。</p><p><strong>扫描过的合同会被存下来吗？</strong> ContractGuard 本身不存储任何数据。合同文本会发送到你配置的 LLM 提供商（OpenRouter、OpenAI 等）做分析，跟你直接用 ChatGPT 问是一样的数据流向。如果你完全不想让合同内容离开你的电脑，用 Ollama 本地模型就行。</p><p><strong>能分析扫描件 PDF 吗？</strong> 目前只支持文本型 PDF（可以复制文字的那种）。扫描件 PDF（图片）需要先做 OCR，这个功能在 roadmap 上但还没做。你可以先用其他 OCR 工具转成文本再喂进来。</p><h2 id="这不是法律意见"><a href="#这不是法律意见" class="headerlink" title="这不是法律意见"></a>这不是法律意见</h2><p>必须说清楚：ContractGuard 是辅助工具，不能替代律师。</p><p>它的定位是合同审查的第一道筛子：花 30 秒跑一下，快速知道这份合同有几个坑、严重程度如何、哪些地方需要找律师细看。然后你再决定要不要请律师细看。</p><p>律师一次几百到几千，但如果你连「这份合同有没有问题」都不知道，连律师都不知道该不该请。先让 AI 过一遍，发现红旗再请律师。这个工作流比闭着眼签、或者花几千块让律师看一份其实没问题的合同，都合理得多。</p><p>GitHub：<a href="https://github.com/he-yufeng/ContractGuard">github.com&#x2F;he-yufeng&#x2F;ContractGuard</a></p><p>写这个工具的初衷就是不想让更多人踩我踩过的坑。合同里的每一个字都在保护某个人的利益，问题是保护的是你还是对方。</p><p>用了觉得有用请 Star 一下。更重要的是，转给你身边正在签合同的朋友。他们可能正准备闭着眼签字。</p><hr><p>我是何宇峰，在做 AI Agent 相关的工程和开源。更多项目在我的 <a href="https://github.com/he-yufeng">GitHub</a>。我目前在找实习 &#x2F; 看秋招机会，欢迎内推或聊聊：<a href="https://www.linkedin.com/in/yufenghe">领英</a>。</p>]]></content>
-      
-      
-      <categories>
-          
-          <category> 技术 </category>
-          
-      </categories>
-      
-      
-        <tags>
-            
-            <tag> AI Agent </tag>
-            
-            <tag> LLM </tag>
-            
-            <tag> 开源 </tag>
-            
-            <tag> Python </tag>
-            
-            <tag> 效率工具 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>从分析 Claude Code 源码到自己写一个：AnyCoder，支持 DeepSeek/Qwen 等任意大模型的开源 AI 编程 Agent</title>
-      <link href="/2026/04/18/anycoder-any-model-coding-agent/"/>
-      <url>/2026/04/18/anycoder-any-model-coding-agent/</url>
-      
-        <content type="html"><![CDATA[<p>上周 Claude Code 源码泄露，我写了篇分析发在知乎，20 万阅读 8000 收藏。后来又把核心逻辑用 1300 行 Python 重写了一遍，就是 CoreCoder。</p><p>这两件事让我收到了大量私信和评论，归纳起来就一句话：</p><blockquote><p>「我用不了 Anthropic 的 API，国产模型能不能跑你这个？」</p></blockquote><p>说实话 CoreCoder 已经支持了，但我觉得做得不够彻底。CoreCoder 的定位是「教学用的精简实现」，1300 行代码是优势但也是限制。很多人想要的是一个真正日常常用的工具，不是一个用来学习的 demo。</p><p>所以我又做了一个，在 GitHub 开源了：<a href="https://github.com/he-yufeng/AnyCoder">github.com&#x2F;he-yufeng&#x2F;AnyCoder</a></p><h2 id="AnyCoder：用你手里的任何模型写代码"><a href="#AnyCoder：用你手里的任何模型写代码" class="headerlink" title="AnyCoder：用你手里的任何模型写代码"></a>AnyCoder：用你手里的任何模型写代码</h2><p>AnyCoder 是一个终端里的 AI 编程 Agent。你可以理解为「不挑模型的 Claude Code」。</p><figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">pip install anycoder</span><br><span class="line"></span><br><span class="line"><span class="comment"># 用 Kimi（默认，便宜好用）</span></span><br><span class="line"><span class="built_in">export</span> <span class="attribute">DEEPSEEK_API_KEY</span>=sk-...</span><br><span class="line">anycoder</span><br><span class="line"></span><br><span class="line"><span class="comment"># Use Kimi K2.5</span></span><br><span class="line">anycoder -m kimi</span><br><span class="line"></span><br><span class="line"><span class="comment"># 用 Claude</span></span><br><span class="line">anycoder -m claude</span><br><span class="line"></span><br><span class="line"><span class="comment"># 用 Qwen</span></span><br><span class="line">anycoder -m qwen</span><br><span class="line"></span><br><span class="line"><span class="comment"># 用本地 Ollama，数据不出机器</span></span><br><span class="line">anycoder -m ollama/llama3.1</span><br></pre></td></tr></table></figure><p>就这么简单。一行安装，一个环境变量，开始干活。</p><h2 id="它能做什么"><a href="#它能做什么" class="headerlink" title="它能做什么"></a>它能做什么</h2><p><strong>读代码。</strong> 分块读，不会一次性塞满上下文。</p><p><strong>改代码。</strong> 不是把整个文件覆盖，是精确的搜索替换。你说「把这个函数里的同步调用改成异步」，它找到那几行，改了，其它的不动。改之前还会检查搜索字符串是不是唯一的，不唯一就让你给多上下文，避免改错地方。</p><p><strong>跑命令。</strong> 「跑一下测试」、「看看 git log」、「安装 requests」，shell 命令直接执行，输出直接拿来分析。</p><p><strong>搜代码库。</strong> 「这个项目里哪些文件用了 Redis？」两种搜索：按文件名模式找文件（glob），按内容正则搜索（grep）。</p><p><strong>自己循环。</strong> 这是 Agent 的关键。它不是回答一次就停了。改完代码之后它自己会想「是不是该跑个测试看看」，然后真的去跑，看到报错了自己修，修完再跑，直到通过。一个请求可能背后跑了十几轮工具调用。</p><h2 id="100-模型随便切"><a href="#100-模型随便切" class="headerlink" title="100+ 模型随便切"></a>100+ 模型随便切</h2><p>底层用的 litellm，几乎市面上所有 LLM 都能接：</p><table><thead><tr><th>简写</th><th>模型</th><th>厂商</th></tr></thead><tbody><tr><td>deepseek</td><td>DeepSeek Chat</td><td>深度求索</td></tr><tr><td>qwen</td><td>Qwen Plus</td><td>阿里通义</td></tr><tr><td>gpt</td><td>ChatGPT</td><td>OpenAI</td></tr><tr><td>claude</td><td>Claude</td><td>Anthropic</td></tr><tr><td>gemini</td><td>Gemini</td><td>Google</td></tr><tr><td>kimi</td><td>Moonshot</td><td>月之暗面</td></tr><tr><td>glm</td><td>GLM</td><td>智谱 AI</td></tr></tbody></table><p>在 REPL 里还能用 <code>/model deepseek</code> 随时切换，不用退出重启。</p><p>不在列表里的也能用，只要是 OpenAI 兼容 API 就行：</p><figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> <span class="attribute">ANYCODER_API_BASE</span>=https://your-api.com/v1</span><br><span class="line"><span class="built_in">export</span> <span class="attribute">ANYCODER_API_KEY</span>=your-key</span><br><span class="line">anycoder -m your-model-name</span><br></pre></td></tr></table></figure><p>本地模型更简单：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">anycoder -m ollama/codestral</span><br><span class="line">anycoder -m ollama/deepseek-coder-v2</span><br></pre></td></tr></table></figure><p>数据完全不出你的机器。</p><h2 id="为什么是-Python"><a href="#为什么是-Python" class="headerlink" title="为什么是 Python"></a>为什么是 Python</h2><p>两个原因。</p><p>第一，国内开发者最熟悉的语言。Claude Code 是 TypeScript 写的，想看懂源码还得先懂 TypeScript 的异步模型和类型系统。Python 代码看一眼就明白干嘛。想改？fork 了直接改。</p><p>第二，生态好。litellm 这种统一 LLM 接口的库在 Python 生态最成熟。Rich 做终端渲染、Pydantic 做数据验证，都是拿来就能用的轮子。</p><p>整个项目依赖就四个：litellm、rich、prompt toolkit、pydantic。没有奇怪的间接依赖链，<code>pip install</code> 不会把你的环境搞乱。</p><h2 id="和别的工具比"><a href="#和别的工具比" class="headerlink" title="和别的工具比"></a>和别的工具比</h2><p><strong>vs Claude Code：</strong> 它绑定 Claude，AnyCoder 不挑模型，而且是纯 Python，改起来容易。</p><p><strong>vs Cursor&#x2F;Windsurf：</strong> 那些是 IDE 插件，绑定了编辑器。AnyCoder 是终端工具，在服务器上 SSH 进去也能用。</p><p><strong>vs Aider：</strong> Aider 也是终端 AI 编程工具，做得很好。AnyCoder 的区别是架构更简单直接，代码量小，想自己 fork 改造很方便。</p><p><strong>vs 直接聊天窗口粘代码：</strong> Agent 模式的核心区别是它能自己操作文件系统。你不用复制粘贴了，它直接在你的项目里读、改、跑。</p><h2 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h2><p>四层，很清晰：</p><ol><li><strong>CLI 层：</strong> Rich 渲染输出，prompt_toolkit 处理输入，支持历史记录和自动补全</li><li><strong>Agent 层：</strong> 核心循环。用户输入 → LLM 决策 → 工具执行 → 结果反馈 → LLM 继续决策</li><li><strong>LLM 层：</strong> litellm 封装，流式输出，自动汇总 tool_calls 的 delta chunks</li><li><strong>工具层：</strong> 6 个工具，每个都有 JSON Schema 描述，注册到工具表里</li></ol><p>上下文管理器在后面盯着。对话接近 token 上限时，自动把中间的旧消息压缩成摘要，保留系统提示和最近几轮对话。你感觉不到这个过程，但它让长对话不会因为超限而崩掉。</p><h2 id="和-CoreCoder-的关系"><a href="#和-CoreCoder-的关系" class="headerlink" title="和 CoreCoder 的关系"></a>和 CoreCoder 的关系</h2><p>CoreCoder 是「教学用途的极简实现」，1300 行代码，重点在于让你看懂 Claude Code 的架构。</p><p>AnyCoder 是「日常使用的生产工具」，该有的功能都有，该做的打磨都做了。</p><p>一个是解剖学教材，一个是能上手术台的手术刀。两个项目互补，不冲突。</p><h2 id="试试看"><a href="#试试看" class="headerlink" title="试试看"></a>试试看</h2><figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">pip install anycoder</span><br><span class="line"></span><br><span class="line"><span class="comment"># 设个 key 就能用</span></span><br><span class="line"><span class="built_in">export</span> <span class="attribute">DEEPSEEK_API_KEY</span>=sk-...</span><br><span class="line">anycoder</span><br></pre></td></tr></table></figure><p>GitHub：<a href="https://github.com/he-yufeng/AnyCoder">github.com&#x2F;he-yufeng&#x2F;AnyCoder</a></p><p>觉得有用请 Star，也欢迎提 issue 和 PR。</p><hr><p>我是何宇峰，在做 AI Agent 相关的工程和开源。更多项目在我的 <a href="https://github.com/he-yufeng">GitHub</a>。我目前在找实习 &#x2F; 看秋招机会，欢迎内推或聊聊：<a href="https://www.linkedin.com/in/yufenghe">领英</a>。</p>]]></content>
-      
-      
-      <categories>
-          
-          <category> 技术 </category>
-          
-      </categories>
-      
-      
-        <tags>
-            
-            <tag> AI Agent </tag>
-            
-            <tag> LLM </tag>
-            
-            <tag> 开源 </tag>
-            
-            <tag> Python </tag>
-            
-            <tag> Claude Code </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>分析完 Claude Code 51 万行源码后，我用 950 行 Python 重现了它的核心功能设计</title>
-      <link href="/2026/04/18/corecoder-claude-code-core-in-python/"/>
-      <url>/2026/04/18/corecoder-claude-code-core-in-python/</url>
-      
-        <content type="html"><![CDATA[<p>前几天 Claude Code 的源码因为 npm 包里残留的 <code>.map</code> 文件被扒了出来，我花了一天读完，写了篇分析发在知乎，意外火了（17 万阅读，6000 收藏）。</p><p>收到最多的两类反馈是：</p><p>一类是「所以 Claude Code 的核心到底怎么实现的？有没有 Python 版的参考实现？我想在其基础上做自己的 Coding Agent。」</p><p>另一类是「搞不到 Anthropic 的 API，Kimi&#x2F;Gemini&#x2F;DeepSeek 能不能跑在 Claude Code 上？」</p><p>这篇算是交作业了。</p><p>我基于最精华、最通用、最易于二次开发的原则，将 Claude Code 的核心功能设计用 950 行 Python 代码写了一遍，项目叫 <strong>CoreCoder</strong>，GitHub 上完全开源：<a href="https://github.com/he-yufeng/CoreCoder">github.com&#x2F;he-yufeng&#x2F;CoreCoder</a></p><h2 id="先看效果"><a href="#先看效果" class="headerlink" title="先看效果"></a>先看效果</h2><p>它会自己读代码、做精准编辑（每次改动输出 unified diff 让你看清改了什么）、跑命令验证、搜代码库。跟 Claude Code 一样的工作流，但模型你自己选。</p><figure class="highlight diff"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">$ corecoder -m kimi-k2.5</span><br><span class="line"></span><br><span class="line">You &gt; 读一下 main.py，修掉拼错的 import</span><br><span class="line"></span><br><span class="line">  &gt; read_file(file_path=&#x27;main.py&#x27;)</span><br><span class="line">  &gt; edit_file(file_path=&#x27;main.py&#x27;, old_string=&#x27;from utils import halper&#x27;,</span><br><span class="line">             new_string=&#x27;from utils import helper&#x27;)</span><br><span class="line"></span><br><span class="line"><span class="comment">--- a/main.py</span></span><br><span class="line"><span class="comment">+++ b/main.py</span></span><br><span class="line"><span class="meta">@@ -1,4 +1,4 @@</span></span><br><span class="line"><span class="deletion">-from utils import halper</span></span><br><span class="line"><span class="addition">+from utils import helper</span></span><br><span class="line"></span><br><span class="line">修好了，halper → helper。</span><br></pre></td></tr></table></figure><h2 id="这不是又一个-Claude-Code-克隆"><a href="#这不是又一个-Claude-Code-克隆" class="headerlink" title="这不是又一个 Claude Code 克隆"></a>这不是又一个 Claude Code 克隆</h2><p>得先把定位说清楚。市面上已经有 Claw-Code（12 万+ star 的完整 Python&#x2F;Rust 重写）、Aider、Cline 这些成熟工具。如果你只是想要一个能用的 AI 编程助手，直接用它们就好，CoreCoder 不跟它们抢这个位置。</p><p>CoreCoder 做的事情不太一样。</p><p>打个比方：想学 GPT 的训练过程，你大概不会上来就读 Megatron-LM 的几十万行代码。你会先看 Andrej Karpathy 的 nanoGPT——用三百来行代码把核心循环讲清楚。看完之后你就知道 GPT 是怎么回事了，然后你 fork 一份，加自己的数据集跑实验，或者在上面改自己的架构。</p><p><strong>CoreCoder 对 AI 编程 Agent 的意义，就是 nanoGPT 对 Transformer 训练的意义。</strong></p><p>51 万行的 Claude Code，核心逻辑就这 950 行代码，全部是从 Claude Code 源码里验证过的设计模式。不是我自己拍脑袋想的架构，是 Anthropic 在 51 万行的生产系统里跑过、用数据验证过的东西。</p><h2 id="51-万行里哪些是「承重墙」"><a href="#51-万行里哪些是「承重墙」" class="headerlink" title="51 万行里哪些是「承重墙」"></a>51 万行里哪些是「承重墙」</h2><p>读完 Claude Code 全部源码，我觉得真正「承重」的设计模式就 7 个。剩下几十万行是 UI 渲染（React + Ink）、MCP 协议适配、OAuth 认证、Skill 插件系统之类的。有意思，但不是一个编程 Agent 的核心。</p><p>以下是我提炼出来的 7 个模式，以及为什么它们重要。</p><h3 id="1-搜索替换式编辑"><a href="#1-搜索替换式编辑" class="headerlink" title="1. 搜索替换式编辑"></a>1. 搜索替换式编辑</h3><p>这可能是 Claude Code 对 AI 编程工具领域最大的单点贡献。</p><p>让 LLM 编辑代码，行业里试过很多方案。行号补丁？LLM 记不住行号，上下文压缩之后更对不上。整文件重写？500 行文件改 2 行也得全部重新生成，token 费用爆炸而且 LLM 复制长文本时经常悄悄丢行。输出 unified diff 格式？<code>@@</code> 行经常算错，需要很复杂的容错解析。</p><p>Claude Code 的做法很简单：LLM 给出一段精确的文本片段（old_string）和替换内容（new_string）。约束只有一条——old_string 必须在文件中<strong>恰好出现一次</strong>。</p><p>0 次 &#x3D; LLM 记错了文件内容，让它重新读文件。多于 1 次 &#x3D; 给的上下文不够，让它包含几行来消除歧义。只有恰好 1 次的情况才执行替换。</p><p>一个约束，干掉了一整类的编辑 bug。CoreCoder 完整实现了这个模式，每次编辑后还会输出 unified diff，你能清楚看到改了什么。</p><h3 id="2-Agent-工具循环-并行执行"><a href="#2-Agent-工具循环-并行执行" class="headerlink" title="2. Agent 工具循环 + 并行执行"></a>2. Agent 工具循环 + 并行执行</h3><p>核心循环本身很简单：用户说话 → 调 LLM → LLM 说要用工具就执行 → 结果喂回 LLM → 重复，直到 LLM 只返回文本。每个 AI Agent 底层都是这个。</p><p>但 Claude Code 有个精妙的优化：流式输出时，模型还在说话就开始执行前面的工具。模型流式吐出第一个工具调用的时候，那个工具立刻开始跑，不等后面的内容。多个只读工具（读文件、grep）并行执行，有副作用的（写文件、bash）独占。</p><p>用过 Claude Code 的人应该有体感——它「想」完之后开始干活的速度特别快。这是原因之一。</p><p>CoreCoder 用了简化版：等全部 tool_calls 返回后，用 ThreadPoolExecutor 并行跑。没有流式解析那么极致，但多工具并行的收益保住了。</p><h3 id="3-三层上下文压缩"><a href="#3-三层上下文压缩" class="headerlink" title="3. 三层上下文压缩"></a>3. 三层上下文压缩</h3><p>128K token 听起来很多，十几轮工具调用就快满了。一个 <code>npm test</code> 的输出可能就好几千 token。</p><p>Claude Code 不是简单截断旧消息，而是用四层渐进策略：</p><ol><li><strong>裁噪声</strong>：grep 返回 500 行结果但模型只用了 3 行？剩下 497 行保留头尾、删中间</li><li><strong>LLM 摘要</strong>：调一次模型把旧对话压成一段话，结果缓存起来下次复用</li><li><strong>硬压缩</strong>：只留最近几轮 + 一段总结，其他全删</li><li><strong>后台自动触发</strong>：用户无感</li></ol><p>不同信息有不同的「保质期」——工具中间输出几轮后就没用了，但用户的需求描述通常整个会话都要保留。按保质期分级处理，比一刀切好很多。</p><h3 id="4-子-Agent：防递归爆炸"><a href="#4-子-Agent：防递归爆炸" class="headerlink" title="4. 子 Agent：防递归爆炸"></a>4. 子 Agent：防递归爆炸</h3><p>子 Agent 不能再创建子 Agent——不是做不到，是工程上不值得。递归 Agent 的费用爆炸风险和调试难度远超两层的收益。</p><p>六种内置 Agent 类型：通用、规划（只做计划不执行）、探索（只读、没有写工具）、验证（跑测试）、帮助、配置。探索 Agent 的设计特别好——只给 read&#x2F;grep&#x2F;glob，保证它不会误改代码。</p><p>Claude Code 的 AgentTool 有 1397 行。CoreCoder 实现了核心逻辑，50 行。</p><h3 id="5-危险命令拦截"><a href="#5-危险命令拦截" class="headerlink" title="5. 危险命令拦截"></a>5. 危险命令拦截</h3><p><code>rm -rf /</code>、fork bomb、<code>curl | bash</code> 这些在执行前就被拦下来。</p><h3 id="6-会话持久化"><a href="#6-会话持久化" class="headerlink" title="6. 会话持久化"></a>6. 会话持久化</h3><p><code>/save</code> 存盘，<code>corecoder -r session_id</code> 恢复。长任务可以随时中断、改天继续。</p><h3 id="7-系统提示词动态组装"><a href="#7-系统提示词动态组装" class="headerlink" title="7. 系统提示词动态组装"></a>7. 系统提示词动态组装</h3><p>不是写死的字符串。根据工作目录、OS、可用工具列表实时拼接。在不同项目里 Agent 的行为是不一样的。</p><h2 id="怎么用"><a href="#怎么用" class="headerlink" title="怎么用"></a>怎么用</h2><p>安装一行：</p><figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pip <span class="keyword">install</span> corecoder</span><br></pre></td></tr></table></figure><p>选你的模型，任何 OpenAI 兼容 API 都行：</p><figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Kimi K2.5</span></span><br><span class="line"><span class="built_in">export</span> <span class="attribute">OPENAI_API_KEY</span>=你的key <span class="attribute">OPENAI_BASE_URL</span>=https://api.moonshot.ai/v1</span><br><span class="line">corecoder -m kimi-k2.5</span><br><span class="line"></span><br><span class="line"><span class="comment"># Claude Opus 4.6（通过 OpenRouter）</span></span><br><span class="line"><span class="built_in">export</span> <span class="attribute">OPENAI_API_KEY</span>=你的key <span class="attribute">OPENAI_BASE_URL</span>=https://openrouter.ai/api/v1</span><br><span class="line">corecoder -m anthropic/claude-opus-4-6</span><br><span class="line"></span><br><span class="line"><span class="comment"># DeepSeek V3</span></span><br><span class="line"><span class="built_in">export</span> <span class="attribute">OPENAI_API_KEY</span>=你的key <span class="attribute">OPENAI_BASE_URL</span>=https://api.deepseek.com</span><br><span class="line">corecoder -m deepseek-chat</span><br><span class="line"></span><br><span class="line"><span class="comment"># GPT-5 / Qwen 3.5 / Ollama 本地模型... 都行</span></span><br></pre></td></tr></table></figure><p>也可以当 Python 库用：</p><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> corecoder <span class="keyword">import</span> Agent, LLM</span><br><span class="line"></span><br><span class="line">llm = LLM(model=<span class="string">&quot;kimi-k2.5&quot;</span>, api_key=<span class="string">&quot;...&quot;</span>, base_url=<span class="string">&quot;https://api.moonshot.ai/v1&quot;</span>)</span><br><span class="line">agent = Agent(llm=llm)</span><br><span class="line">response = agent.chat(<span class="string">&quot;找出项目里所有 TODO 注释&quot;</span>)</span><br></pre></td></tr></table></figure><p>想加自定义工具的话大概 20 行代码，继承一个 <code>Tool</code> 基类就行了。</p><h2 id="谁适合用"><a href="#谁适合用" class="headerlink" title="谁适合用"></a>谁适合用</h2><p><strong>想自己造轮子的团队。</strong> Fork 下来就是一个完整的起点。加 MCP 支持、加权限系统、换成你们公司的内部模型，比从零开始快一个量级。我见过的最小的、完整可运行的编程 Agent 实现。</p><p><strong>做 AI Agent 方向的研究者和学生。</strong> 每个核心设计模式都有可运行的代码，带着代码理解论文和架构设计，比看流程图强。</p><p><strong>编程 Agent 的开发者。</strong> Kimi K2.5、GLM5、MiniMax M2.7、Gemini 3.1 Pro 等模型的 coding 能力已经很强了，缺一个好用的 Agent 壳来驱动它们。CoreCoder 就是这个壳。</p><p>如果你只是想要一个开箱即用的 AI 编程助手日常用，Claude Code、Cursor 或者 Aider 更适合。CoreCoder 的价值在于<strong>你能读懂它、改造它、在上面造出自己的东西</strong>。</p><h2 id="配套导读"><a href="#配套导读" class="headerlink" title="配套导读"></a>配套导读</h2><p>代码之外，我还写了一套 7 篇的 Claude Code 架构导读，每篇围绕一个核心设计模式展开：</p><ol><li>从 51 万行说起：技术栈、目录结构、十大设计哲学</li><li>1729 行的 while(true)：Agent 核心循环的全部细节</li><li>让 AI 安全地改你的代码：工具系统和搜索替换编辑</li><li>有限窗口，无限任务：四层上下文压缩的工程权衡</li><li>边想边做：流式工具执行如何把延迟做到接近零</li><li>当一个 Claude 不够用：多 Agent 协作系统</li><li>编译期与运行期的功能门控：用 ML 研究的方法论做产品工程</li></ol><p>导读也在 GitHub 上：<a href="https://github.com/he-yufeng/CoreCoder/tree/main/article">github.com&#x2F;he-yufeng&#x2F;CoreCoder&#x2F;tree&#x2F;main&#x2F;article</a></p><h2 id="最后"><a href="#最后" class="headerlink" title="最后"></a>最后</h2><p>51 万行源码的核心设计，950 行 Python 复刻。7 个工具，33 个测试全过。</p><p>代码全在 GitHub 上，fork 了随便改：<a href="https://github.com/he-yufeng/CoreCoder">github.com&#x2F;he-yufeng&#x2F;CoreCoder</a></p><p>觉得有用的话请给个 Star，这对我很重要。有技术问题欢迎在 issue 区讨论。</p><blockquote><p>本文基于公开泄露的源码进行技术分析，Claude Code 所有代码版权归 Anthropic 所有。</p></blockquote><hr><p>我是何宇峰，在做 AI Agent 相关的工程和开源。更多项目在我的 <a href="https://github.com/he-yufeng">GitHub</a>。我目前在找实习 &#x2F; 看秋招机会，欢迎内推或聊聊：<a href="https://www.linkedin.com/in/yufenghe">领英</a>。</p>]]></content>
-      
-      
-      <categories>
-          
-          <category> 技术 </category>
-          
-      </categories>
-      
-      
-        <tags>
-            
-            <tag> AI Agent </tag>
-            
-            <tag> LLM </tag>
-            
-            <tag> 开源 </tag>
-            
-            <tag> Python </tag>
-            
-            <tag> Claude Code </tag>
             
         </tags>
       
@@ -317,106 +119,13 @@
       
         <tags>
             
-            <tag> 动漫 </tag>
-            
             <tag> Vtuber </tag>
+            
+            <tag> 动漫 </tag>
             
             <tag> 文化 </tag>
             
             <tag> 进化论 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>量化交易和AI的边界在哪里</title>
-      <link href="/2026/03/07/quant-trading-thoughts/"/>
-      <url>/2026/03/07/quant-trading-thoughts/</url>
-      
-        <content type="html"><![CDATA[<p>在Kimi做Vibe Trading这个项目的时候，我们构建的是一个多agent的金融博弈仿真环境——多个agent在里面扮演不同的市场参与者，互相博弈，生成类似真实市场的涌现行为。这件事做起来挺有意思的，但做完之后我对”AI做量化交易”这个命题反而更不确定了。</p><p>不是说这东西没有价值，是觉得大家想象的那条路和真实能走通的路之间，有一个被严重低估的鸿沟。</p><p><strong>非平稳性是根本问题，不是调参能解决的</strong></p><p>量化策略最怕的不是市场下跌，是regime change——市场结构突然变了。2020年3月、2022年的加息周期开始、2025年某次地缘事件，每次这种切换发生的时候，之前所有在历史数据上好看的策略都会出现程度不同的回撤。</p><p>机器学习模型的训练假设是数据同分布（i.i.d.），但金融时间序列根本不满足这个条件。你用2015-2020年的数据训练，得到的模型学到的是那五年的市场规律，而那些规律在2023年可能早就不成立了。你可以用各种方法来缓解这个问题：滚动窗口重训练、在线学习、对抗训练……但你解决不了”下一次regime change长什么样你不知道”这个根本问题。</p><p>这不是AI特有的问题，传统量化策略也一样面对这个困境。但AI的问题在于模型更复杂、可解释性更差，你很难判断它在一个新的市场环境里到底在做什么。</p><p><strong>有效市场会消灭有效策略</strong></p><p>如果你发现了一个有效的AI交易策略，把它部署上去，它开始赚钱。然后呢？如果这个策略可以被复制，同类策略的资金规模增大，套利空间被压缩，策略就失效了。如果这个策略不能被复制，说明它依赖的是某种独特的信息源或者独特的执行能力，那AI模型本身只是其中一个环节，不是核心。</p><p>有效市场假说（EMH）在强式和半强式层面争议很大，但弱式有效性——历史价格信息已经被定价——是基本被接受的。这意味着纯粹基于历史数据的技术分析策略，在大资金规模上是很难持续有效的。</p><p>Alpha的来源无非三类：信息优势（你知道别人不知道的）、速度优势（你比别人快）、模型优势（你的分析比别人准）。AI在模型维度确实有进展，但单独靠模型优势，在一个大量聪明人都在做量化的市场里，边际收益是递减的。</p><p><strong>强化学习在金融里的困境</strong></p><p>理论上RL很适合量化交易：有明确的奖励信号（收益），有状态（市场状态），有动作（买卖）。但实践里有几个问题叠加在一起，让这条路比想象中难走：</p><p>奖励信号极度稀疏且噪声极大。股价的短期波动里有大量的随机成分，agent很容易把噪声当信号，学到一个在训练环境里看起来不错但其实在拟合噪声的策略。更麻烦的是，你没有办法通过大量采样来平均掉噪声——你不能把2020年3月重放一千遍来收集足够的训练数据，市场每天只发生一次。</p><p>Vibe Trading做的多agent博弈环境，一定程度上是在尝试解决这个问题：通过仿真生成更多的训练数据，让agent在虚拟环境里积累”经验”。这个思路是对的，但仿真环境和真实市场之间的gap（俗称reality gap）是客观存在的。仿真里学会的东西，在真实环境里的迁移效果如何，是个严肃的研究问题，不能直接假设”仿真好&#x3D;实盘好”。</p><p><strong>真实存在有效的AI量化策略</strong></p><p>说了这么多limitation，但我不想给人留下”AI量化不可能有效”的印象，因为那也是错的。</p><p>高频交易领域，AI在微秒级的订单流预测、做市策略优化上确实有实质性的应用。统计套利里，用机器学习来识别跨市场、跨资产的价差异常，也有有效的案例。这些有效的地方，往往有一个共同特点：策略的”有效窗口”很短，短到人工无法手动响应，但也短到竞争者很难完全消除套利空间。</p><p>另外，AI在量化研究的辅助环节里是有价值的：因子挖掘、风险模型、组合优化，这些地方AI作为工具是靠谱的。</p><p><strong>我的判断</strong></p><p>多agent仿真是研究工具，是用来理解市场微观结构、验证理论假设的框架，不是可以直接插上实盘的生产策略。中间有很大的gap，主要来自三个地方：仿真假设的市场模型和真实市场结构的差距，仿真里可以无限次试验但实盘里每个决策都是一次性的，以及仿真环境里没有”其他AI策略也在学习”这个对抗性压力。</p><p>我不反对这个方向继续探索，但我对那种”用AI可以打败市场”的宏大叙事始终保持怀疑。市场这个东西，它有一种令人沮丧的特性：你越聪明、越多人聪明，它就越难被打败。这不是AI的问题，是这个游戏本身的设计。</p><p>所以边界在哪里？我目前的答案是：AI在量化里是有价值的，但价值在于执行效率和特定的细分场景，而不是”创造Alpha”这件事本身。至于这个答案是不是对的，做下去再说。</p>]]></content>
-      
-      
-      <categories>
-          
-          <category> 随笔 </category>
-          
-      </categories>
-      
-      
-        <tags>
-            
-            <tag> 量化交易 </tag>
-            
-            <tag> AI </tag>
-            
-            <tag> 思考 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>Nim游戏：异或的胜利，数学的暴力</title>
-      <link href="/2026/03/02/nim-game/"/>
-      <url>/2026/03/02/nim-game/</url>
-      
-        <content type="html"><![CDATA[<h2 id="如果御坂美琴和十六夜咲夜玩取石子"><a href="#如果御坂美琴和十六夜咲夜玩取石子" class="headerlink" title="如果御坂美琴和十六夜咲夜玩取石子"></a>如果御坂美琴和十六夜咲夜玩取石子</h2><p>想象一下这个场景：</p><p>三堆硬币，分别有3、5、7枚。御坂美琴先手，十六夜咲夜后手。每次从任意一堆取任意多个（至少1个），拿走最后一枚的人赢。</p><p>美琴是Level 5的超能力者，但超电磁炮在这里没用。咲夜能停止时间，但停了时间也算不出最优策略（除非她停下来偷偷查手机）。</p><p>这个游戏纯粹是数学。谁先掌握了1901年Bouton定理，谁就永远不会输。</p><p>没有例外。</p><h2 id="Bouton定理（1901）"><a href="#Bouton定理（1901）" class="headerlink" title="Bouton定理（1901）"></a>Bouton定理（1901）</h2><p>Charles L. Bouton于1901年在 <em>Annals of Mathematics</em> 上发表了论文”Nim, A Game with a Complete Mathematical Theory”，给出了Nim游戏的完整解：</p><p>对于局面 $(a_1, a_2, \ldots, a_n)$，定义尼姆和（Nim-sum）为各堆数量的按位异或：</p><p>$$S &#x3D; a_1 \oplus a_2 \oplus \cdots \oplus a_n$$</p><p>当 $S &#x3D; 0$ 时，当前玩家必败（P-position）。当 $S \neq 0$ 时，当前玩家必胜（N-position）。</p><p>翻译成人话：把所有堆的数量异或起来，等于0你就寄了。</p><p>代码：</p><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;bits/stdc++.h&gt;</span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="type">int</span> t; <span class="built_in">scanf</span>(<span class="string">&quot;%d&quot;</span>, &amp;t);</span><br><span class="line">    <span class="keyword">while</span> (t--) &#123;</span><br><span class="line">        <span class="type">int</span> n, x = <span class="number">0</span>, a;</span><br><span class="line">        <span class="built_in">scanf</span>(<span class="string">&quot;%d&quot;</span>, &amp;n);</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; n; i++) &#123;</span><br><span class="line">            <span class="built_in">scanf</span>(<span class="string">&quot;%d&quot;</span>, &amp;a);</span><br><span class="line">            x ^= a;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="built_in">puts</span>(x ? <span class="string">&quot;Yes&quot;</span> : <span class="string">&quot;No&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>洛谷 P2197，直接交就过。这可能是你见过的最短的AC代码之一。</p><h2 id="证明：为什么是异或"><a href="#证明：为什么是异或" class="headerlink" title="证明：为什么是异或"></a>证明：为什么是异或</h2><p>不是”因为异或好用所以用异或”，是”博弈的数学结构天然就是异或”。</p><p>定义两种局面：</p><ul><li>P-position（Previous player wins）：当前玩家必败</li><li>N-position（Next player wins）：当前玩家必胜</li></ul><p>任何公平博弈的局面满足以下三条性质（Zermelo, 1913）：</p><blockquote><p>(i) 终止局面是P-position<br>(ii) 从N-position出发，至少存在一步走到P-position<br>(iii) 从P-position出发，任何一步都走到N-position</p></blockquote><p>现在验证 $S &#x3D; a_1 \oplus a_2 \oplus \cdots \oplus a_n$ 确实把P&#x2F;N分对了：</p><p>性质(i)：终止局面 $(0, 0, \ldots, 0)$ 的异或值为0。哈基米都能验证这个。</p><p>性质(ii)：设 $S \neq 0$，取 $S$ 的最高位为第 $k$ 位。则必存在某个 $a_i$ 的第 $k$ 位为1（否则异或出来第 $k$ 位不可能是1）。令 $a_i’ &#x3D; a_i \oplus S$，则 $a_i’ &lt; a_i$（因为第 $k$ 位从1变成了0，更高位不变）。将第 $i$ 堆从 $a_i$ 改为 $a_i’$ 是合法操作，操作后新的异或值为：</p><p>$$a_1 \oplus \cdots \oplus a_i’ \oplus \cdots \oplus a_n &#x3D; S \oplus a_i \oplus a_i’ &#x3D; S \oplus a_i \oplus (a_i \oplus S) &#x3D; 0$$</p><p>性质(iii)：设 $S &#x3D; 0$，假设对某堆从 $a_i$ 改为 $a_i’$（$a_i’ &lt; a_i$，即 $a_i’ \neq a_i$），则新异或值为 $0 \oplus a_i \oplus a_i’ &#x3D; a_i \oplus a_i’ \neq 0$。</p><p>三条性质全部满足。$\blacksquare$</p><p>这个证明的美感在于：你不需要构造什么复杂的策略树，整个博弈的必胜必败完全被一个代数不变量刻画了。数学的暴力美学。</p><h2 id="回到美琴vs咲夜"><a href="#回到美琴vs咲夜" class="headerlink" title="回到美琴vs咲夜"></a>回到美琴vs咲夜</h2><p>三堆硬币：3, 5, 7。</p><figure class="highlight asciidoc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="code">  011  (3)</span></span><br><span class="line"><span class="code">  101  (5)</span></span><br><span class="line"><span class="section">  111  (7)</span></span><br><span class="line"><span class="section">---------</span></span><br><span class="line"><span class="code">  001  = 1 ≠ 0</span></span><br></pre></td></tr></table></figure><p>先手美琴必胜。策略：$S &#x3D; 1$，找一堆异或完能变小的。$3 \oplus 1 &#x3D; 2 &lt; 3$，从第一堆拿1枚（3→2）。</p><p>局面变成 (2, 5, 7)：$010 \oplus 101 \oplus 111 &#x3D; 000$。咲夜陷入P-position。</p><p>从这里开始，不管咲夜怎么操作，美琴都能把异或值重新拉回0。咲夜的时间停止能力在数学面前毫无用处，除非她作弊偷偷放回去几个——但那违反规则。</p><p>芙宁娜在旁边看审判：”本庭宣判，先手方御坂美琴胜诉。证据为Bouton定理（1901）。”</p><h2 id="Sprague-Grundy定理：博弈论的统一场论"><a href="#Sprague-Grundy定理：博弈论的统一场论" class="headerlink" title="Sprague-Grundy定理：博弈论的统一场论"></a>Sprague-Grundy定理：博弈论的统一场论</h2><p>Nim只是开胃菜。Sprague（1935）和Grundy（1939）各自独立证明了一个更强的定理：</p><blockquote><p>任何有限无环的公平组合游戏（Impartial Combinatorial Game）都等价于某个单堆Nim游戏。</p></blockquote><p>这个等价通过SG函数（Sprague-Grundy函数）建立。</p><p>定义 $\text{mex}(S)$（minimal excludant）为集合 $S$ 中最小的不在 $S$ 中的非负整数：</p><p>$$\text{mex}({0, 1, 3}) &#x3D; 2, \quad \text{mex}({1, 2}) &#x3D; 0, \quad \text{mex}(\varnothing) &#x3D; 0$$</p><p>（mex本身就挺哈基米的——找最小的不在里面的。就像你去食堂发现1号窗口2号窗口都有人排，你去3号，3号也有人，但4号没有——你的mex就是4号窗口。）</p><p>对于博弈图上的每个状态 $x$，递归定义：</p><p>$$\text{SG}(x) &#x3D; \text{mex}\left({\text{SG}(y) \mid y \in \text{next}(x)}\right)$$</p><p>终止状态没有后继，$\text{SG}(\text{终止}) &#x3D; \text{mex}(\varnothing) &#x3D; 0$。</p><p>核心定理：如果游戏由 $k$ 个独立子游戏组成，则</p><p>$$\text{SG}(\text{总游戏}) &#x3D; \text{SG}(G_1) \oplus \text{SG}(G_2) \oplus \cdots \oplus \text{SG}(G_k)$$</p><p>当且仅当总SG值为0时当前玩家必败。</p><p>标准Nim是这个定理的特例：单堆 $n$ 个石子的SG值恰好就是 $n$。</p><h2 id="变种1：每次最多取k个（Bounded-Nim）"><a href="#变种1：每次最多取k个（Bounded-Nim）" class="headerlink" title="变种1：每次最多取k个（Bounded Nim）"></a>变种1：每次最多取k个（Bounded Nim）</h2><p>一堆 $n$ 个，每次取 $[1, k]$ 个。SG值打表：</p><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">SG</span><span class="params">(<span class="number">0</span>)</span></span> = <span class="number">0</span></span><br><span class="line"><span class="function"><span class="title">SG</span><span class="params">(<span class="number">1</span>)</span></span> = <span class="built_in">mex</span>(&#123;<span class="number">0</span>&#125;) = <span class="number">1</span></span><br><span class="line"><span class="function"><span class="title">SG</span><span class="params">(<span class="number">2</span>)</span></span> = <span class="built_in">mex</span>(&#123;<span class="number">0</span>,<span class="number">1</span>&#125;) = <span class="number">2</span></span><br><span class="line">...</span><br><span class="line"><span class="function"><span class="title">SG</span><span class="params">(k)</span></span> = <span class="built_in">mex</span>(&#123;<span class="number">0</span>,<span class="number">1</span>,...,k-<span class="number">1</span>&#125;) = k</span><br><span class="line"><span class="function"><span class="title">SG</span><span class="params">(k+<span class="number">1</span>)</span></span> = <span class="built_in">mex</span>(&#123;<span class="number">1</span>,<span class="number">2</span>,...,k&#125;) = <span class="number">0</span>    ← 回来了！</span><br></pre></td></tr></table></figure><p>规律：$\text{SG}(n) &#x3D; n \bmod (k+1)$</p><p>多堆时异或各堆的SG值。类似于把标准Nim的堆大小全部对 $k+1$ 取模。</p><p>如果咲夜限制美琴每次最多拿3个，美琴的优势就没那么大了——但只要她会对4取模，还是能赢。</p><h2 id="变种2：阶梯Nim（Staircase-Nim）"><a href="#变种2：阶梯Nim（Staircase-Nim）" class="headerlink" title="变种2：阶梯Nim（Staircase Nim）"></a>变种2：阶梯Nim（Staircase Nim）</h2><p>$n$ 级阶梯，每级有若干石子。每次将某一级上任意多石子移到下一级，第0级（地面）上的石子移出游戏。</p><p>结论：只对奇数级做标准Nim。</p><p>直觉：对手在偶数级动了什么，你立刻把那些石子往下推一级到奇数级”还原”。偶数级的操作等于废棋。</p><p>数学上这可以用SG函数+博弈等价性严格证明，但直觉已经足够你AC了。</p><h2 id="变种3：反Nim（Misere-Nim）"><a href="#变种3：反Nim（Misere-Nim）" class="headerlink" title="变种3：反Nim（Misère Nim）"></a>变种3：反Nim（Misère Nim）</h2><p>规则改成”拿到最后一颗的人输”。</p><p>结论几乎不变，只有一个特殊情况需要处理：</p><ul><li>所有堆的大小都 $\leq 1$ → 堆数为奇数时先手输</li><li>存在大于1的堆 → 跟正常Nim一样看异或值</li></ul><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">bool</span> all_le1 = <span class="literal">true</span>;</span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; n; i++) &#123;</span><br><span class="line">    <span class="keyword">if</span> (a[i] &gt; <span class="number">1</span>) all_le1 = <span class="literal">false</span>;</span><br><span class="line">    x ^= a[i];</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (all_le1) <span class="built_in">puts</span>(x ? <span class="string">&quot;No&quot;</span> : <span class="string">&quot;Yes&quot;</span>);</span><br><span class="line"><span class="keyword">else</span> <span class="built_in">puts</span>(x ? <span class="string">&quot;Yes&quot;</span> : <span class="string">&quot;No&quot;</span>);</span><br></pre></td></tr></table></figure><p>为什么会这样？因为”存在大堆”时你可以通过精确操控把局面导向”每堆最多1个且堆数对对手不利”的状态。Misère的特判本质上是endgame的细微差异。</p><h2 id="实战：打表找SG值的规律"><a href="#实战：打表找SG值的规律" class="headerlink" title="实战：打表找SG值的规律"></a>实战：打表找SG值的规律</h2><p>竞赛博弈题的SG函数经常有周期性。暴力算前100个然后肉眼找规律：</p><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> sg[MAXN];</span><br><span class="line"><span class="type">bool</span> vis[MAXN];</span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">calc_sg</span><span class="params">(<span class="type">int</span> n, vector&lt;<span class="type">int</span>&gt;&amp; moves)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt;= n; i++) &#123;</span><br><span class="line">        <span class="built_in">memset</span>(vis, <span class="literal">false</span>, <span class="built_in">sizeof</span>(vis));</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> m : moves) &#123;</span><br><span class="line">            <span class="keyword">if</span> (i &gt;= m) vis[sg[i - m]] = <span class="literal">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> j = <span class="number">0</span>; ; j++) &#123;</span><br><span class="line">            <span class="keyword">if</span> (!vis[j]) &#123; sg[i] = j; <span class="keyword">break</span>; &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 打出来看看</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt;= n; i++) <span class="built_in">printf</span>(<span class="string">&quot;SG(%d)=%d\n&quot;</span>, i, sg[i]);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>SG值出现周期性在绝大多数竞赛题中都成立（Sprague-Grundy周期性猜想，1956年Guy和Smith做了大量数值验证）。找到周期后O(1)回答每个query。</p><h2 id="做题checklist"><a href="#做题checklist" class="headerlink" title="做题checklist"></a>做题checklist</h2><p>碰到博弈题：</p><ol><li>是标准Nim？→ 异或</li><li>能转化成Nim？→ 算SG值</li><li>多个独立子游戏？→ SG异或</li><li>SG值算不出闭式？→ 打表找周期</li><li>打表也没规律？→ 你可能读错题了</li></ol><p>第5条不是开玩笑。如果奶龙来打ACM，它大概率在第5条卡住。</p><hr><p><em>练习题：<a href="https://www.luogu.com.cn/problem/P2197">洛谷P2197 Nim游戏</a> · <a href="https://oi-wiki.org/math/game-theory/impartial-game/">OI Wiki 公平组合游戏</a> · Bouton原文: “Nim, A Game with a Complete Mathematical Theory”, Annals of Mathematics, 1901</em></p><p><em>（芙宁娜判决：本篇博文的学术严谨性达到了”可以引用但导师会皱眉”的水平。）</em></p>]]></content>
-      
-      
-      <categories>
-          
-          <category> 算法 </category>
-          
-      </categories>
-      
-      
-        <tags>
-            
-            <tag> 博弈论 </tag>
-            
-            <tag> Nim </tag>
-            
-            <tag> 异或 </tag>
-            
-            <tag> ACM-ICPC </tag>
-            
-            <tag> Sprague-Grundy </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>提瓦特阶级论：七国打工人血泪史</title>
-      <link href="/2026/03/02/genshin-class-analysis/"/>
-      <url>/2026/03/02/genshin-class-analysis/</url>
-      
-        <content type="html"><![CDATA[<h2 id="前言：我为什么要写这种东西"><a href="#前言：我为什么要写这种东西" class="headerlink" title="前言：我为什么要写这种东西"></a>前言：我为什么要写这种东西</h2><p>因为凌晨五点睡不着，打开原神看到派蒙说”好想吃提瓦特煎蛋”的时候突然想到一个问题：</p><p>派蒙吃的这个蛋是谁下的？鸡是谁养的？饲料是谁种的？旅行者一路打打杀杀拯救世界，有没有付过一次饲料钱？</p><p>然后我就开始想提瓦特的阶级问题，一想就收不住了。</p><h2 id="蒙德：表面自由实际躺平的后封建社会"><a href="#蒙德：表面自由实际躺平的后封建社会" class="headerlink" title="蒙德：表面自由实际躺平的后封建社会"></a>蒙德：表面自由实际躺平的后封建社会</h2><p>蒙德号称”自由之城”，风神巴巴托斯两千年前赶走了暴君之后就跑去睡觉了。听着很浪漫对吧？翻译成人话就是：CEO创业成功后直接跑路了，留下一帮中层管理（西风骑士团）自己搞。</p><p>你看蒙德的权力结构：</p><ul><li>西风骑士团 &#x3D; 事业编公务员，有编制有工资有社会地位</li><li>冒险家协会 &#x3D; 外包零工，干最危险的活拿最少的钱</li><li>迪卢克 &#x3D; 本地首富，名义上不参与政治但实际上半个蒙德都是他家产业，晚上还搞暗夜英雄那套</li><li>温迪 &#x3D; 创始人，现在是蒙德最穷的人，天天蹭酒喝</li></ul><p>蒙德的”自由”说白了是有钱人的自由。迪卢克家的晨曦酒庄横跨半个蒙德城外，雇了一大帮人种葡萄酿酒。他当暗夜英雄是出于正义感没错，但哥们你有这个闲是因为你不用打工啊。</p><p>而普通蒙德市民呢？去看看NPC对话就知道了——花匠担心花卖不出去，铁匠抱怨生意不好，猫尾酒馆的迪奥娜天天上班累得要死但不能辞职因为她是唯一的调酒师。</p><p>风神给了蒙德自由，但没给蒙德社保。</p><h2 id="璃月：资本主义黄金时代"><a href="#璃月：资本主义黄金时代" class="headerlink" title="璃月：资本主义黄金时代"></a>璃月：资本主义黄金时代</h2><p>璃月是提瓦特最好懂的国家，因为它就是赤裸裸的商业社会。</p><p>璃月七星 &#x3D; 董事会。凝光 &#x3D; 董事长兼CEO，住在天上的群玉阁里。字面意义的”住在天上”。普通璃月人抬头就能看到凝光的豪宅飘在云里，每天提醒你：阶级差距真的可以物理性地悬浮在你头顶。</p><p>（后来群玉阁被打下来了，凝光说”没关系我再造一个”。没关系。再造一个。有钱真好。）</p><p>璃月港的底层什么样？你去轻策庄看看那些NPC就知道了——年轻人全跑去璃月港打工了，村里只剩老人。莲花池的渔民天天出海冒生命危险，赚的钱可能还不够在璃月港吃一顿天理珍馐。</p><p>最离谱的是愚人众在璃月的银行渗透。至冬国的北国银行开在璃月港正中央，搞金融操控。翻译一下：外资银行进驻本地市场挤压民族产业。这不就是19世纪的租界吗米浴。</p><p>岩神摩拉克斯最后选择”退休”——你全提瓦特的货币都是用你的名字命名的，你退个什么休？比尔·盖茨说要退休做慈善，至少他的钱还叫美元不叫盖茨。</p><h2 id="稻妻：封建军国主义的活教材"><a href="#稻妻：封建军国主义的活教材" class="headerlink" title="稻妻：封建军国主义的活教材"></a>稻妻：封建军国主义的活教材</h2><p>稻妻是提瓦特里阶级矛盾最炸裂的国家。</p><p>雷神将军搞了个”眼狩令”——把所有人的神之眼收走。翻译一下：国家没收生产工具。但问题是，你看九条裟罗、神里绫华这些贵族阶层，该有眼的还是有眼。眼狩令本质上是对底层群众的单方面缴械。</p><p>三奉行制度更离谱了：</p><ul><li>天领奉行 &#x3D; 祭祀贵族（精神统治）</li><li>勘定奉行 &#x3D; 经济贵族（钱袋子）</li><li>社奉行 &#x3D; 文化贵族（舆论控制）</li></ul><p>三个贵族家族垄断了军事、经济、文化三大权力。然后愚人众还渗透进去搞掉了不合作的，换上了自己人。底层反抗军呢？被愚人众当枪使了，打完仗才发现自己的”革命领袖”是外国势力的棋子。</p><p>绯木村灭村——整个村子的人被冲突波及全灭了，但是雷神将军还在一心同体那里吃甜点。</p><p>海祇岛的反抗军本质上就是一群被压迫到受不了的渔民。心海看着像个温柔的军师，但你想想，让一群渔民拿着破武器去对抗有神之眼的幕府军，这中间的战力差距跟让外卖骑手去跟特种兵对线差不多。</p><h2 id="须弥：知识就是权力（字面意义）"><a href="#须弥：知识就是权力（字面意义）" class="headerlink" title="须弥：知识就是权力（字面意义）"></a>须弥：知识就是权力（字面意义）</h2><p>须弥玩了一手更高级的。</p><p>教令院垄断了知识。不是那种”好大学才有好资源”的间接垄断，是”知识本身由神的意识驱动，教令院控制神的意识”的直接垄断。</p><p>底层须弥人能接触到什么？虚空终端里的公开信息。教令院的学者能接触到什么？直接跟世界树对接的知识库。这个信息差比ChatGPT免费版和企业版的差距还大。</p><p>而且教令院还搞了个”轮回”实验——让一帮人在虚幻的梦境里循环，把他们的意识抽取出来喂给人造神。一群学者用活人做电池，这不就是提瓦特版的Matrix吗？尼奥在哪里？</p><p>赛诺作为大风纪官负责”执法”，但他自己也承认教令院的规矩很多时候就是扯淡。一个执法者亲口说法律有问题，但还是得执行——这个设定写实到让人不适。</p><h2 id="枫丹：法治社会的精致陷阱"><a href="#枫丹：法治社会的精致陷阱" class="headerlink" title="枫丹：法治社会的精致陷阱"></a>枫丹：法治社会的精致陷阱</h2><p>枫丹是最像现代社会的国家，所以阶级矛盾也最隐蔽。</p><p>芙宁娜在审判庭上审了几百年的案子，看着风光无限。但实际上呢？她自己就是最大的受害者——被迫扮演水神，一个人承受整个国家的重量，不能告诉任何人真相。翻译成职场语言：一个实习生被迫冒充总监撑场子，撑了几百年不能辞职不能请假不能崩溃。</p><p>枫丹表面上法治完善、媒体自由、审判公正。但你看壁炉之家——“仆人”开的孤儿院，表面收养孤儿，实际培养特工。林尼和琳妮特从小在里面长大，被训练成魔术师兼间谍。提瓦特版的”资本家开福利院当劳动力蓄水池”。</p><p>而且枫丹还有个特别真实的设定：出版业非常发达，各种报纸和小说满天飞。但出版商蒙吕松雇愚人众当保镖来销毁不利证据——媒体自由只在不触碰利益的时候存在。</p><h2 id="愚人众：提瓦特最大的血汗工厂"><a href="#愚人众：提瓦特最大的血汗工厂" class="headerlink" title="愚人众：提瓦特最大的血汗工厂"></a>愚人众：提瓦特最大的血汗工厂</h2><p>最后说说愚人众这个组织本身，因为它的内部阶级结构堪称提瓦特的缩影。</p><p>顶层：冰之女皇，一个人的意志驱动整个国家。十一执行官，被赐予”神灵般的权柄”，各个都是人形核弹级别的战力。</p><p>底层：先遣队。名字叫”先遣”，意思是”生死不问，你先上”。单兵实力薄弱，装备落后，被派到异国他乡执行任务。说白了就是炮灰。</p><p>而且愚人众底层士兵的日常特别有打工人那味：</p><ul><li>有个哥们被外派到枫丹摸鱼，结果来了个工作狂副队长，摸不了了，于是伪造公文跑去水文监测站躲着——本质上就是上班划水被抓后跑去仓库躲起来假装盘库存</li><li>有个冰铳重卫士出现在轻策庄，甘雨二话不说把人打了一顿，结果审完发现人家只是来摘树莓的——异地出差连摘个果子都要被当间谍打</li><li>“公子”跟先遣队新兵对练，结果新兵个个开盾回血，把”公子”暴打——新员工入职培训把CEO打了，离谱但真实</li><li>玩家社区叫他们”驴人众”——因为NPC小女孩口齿不清把名字念错了。连组织名都被叫错，底层打工人的尊严约等于零</li></ul><p>愚人众执行官”富人”潘塔罗涅出身贫寒，靠自己爬到了掌管整个至冬国经济的位置。标准的”穷人家的孩子当了资本家”叙事——但他现在对底层员工好吗？看看先遣队的待遇就知道了。阶级跃迁的终点是忘记自己的出身，古今中外概莫能外。</p><h2 id="旅行者：提瓦特唯一的真·无产阶级"><a href="#旅行者：提瓦特唯一的真·无产阶级" class="headerlink" title="旅行者：提瓦特唯一的真·无产阶级"></a>旅行者：提瓦特唯一的真·无产阶级</h2><p>最后说一个大家可能没想过的：旅行者（也就是你操作的那个空&#x2F;荧）是全提瓦特最纯粹的无产阶级。</p><p>没有生产资料：所有武器都是捡的或者别人给的。<br>没有固定住所：睡帐篷，借住在别人家。<br>没有组织归属：冒险家协会？那是零工平台不是单位。<br>没有社会保障：受伤了吃个甜甜花就完事，没有医保。</p><p>旅行者唯一的”生产工具”是自己的身体和战斗能力。他&#x2F;她靠出卖劳动力（帮人打怪、跑腿、送信）换取报酬（摩拉和好感度）。每到一个新国家都要从零开始建立关系网，帮当地神解决问题然后继续流浪。</p><p>而派蒙？派蒙是旅行者的精神抚慰品——一个不生产任何价值但持续消耗食物的吉祥物。旅行者连这点精神享受的钱都是自己打怪赚的。</p><p>更惨的是：旅行者帮七个国家的神解决了存亡级别的危机，但到现在没有一个国家给过他&#x2F;她一套房。连个编制都没有。纳西妲给了一朵花，雷神给了一把刀，芙宁娜给了……一段回忆？</p><p>拯救世界七次，依然买不起璃月港的房子。</p><p>这不就是当代打工人的终极写照吗。</p><hr><p><em>BGM：旅行者不需要BGM，因为BGM也要花钱买版权</em></p><p><em>（如果冰之女皇最后真的搞了个”提瓦特苏维埃”我第一个加入愚人众，至少有编制。）</em></p>]]></content>
-      
-      
-      <categories>
-          
-          <category> 漫谈 </category>
-          
-      </categories>
-      
-      
-        <tags>
-            
-            <tag> 动漫 </tag>
-            
-            <tag> 原神 </tag>
-            
-            <tag> 芙宁娜 </tag>
-            
-            <tag> 整活 </tag>
             
         </tags>
       
@@ -441,48 +150,15 @@
       
         <tags>
             
+            <tag> 动漫 </tag>
+            
             <tag> BanG Dream </tag>
             
             <tag> MyGO </tag>
             
             <tag> 千早爱音 </tag>
             
-            <tag> 动漫 </tag>
-            
             <tag> 社会观察 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>毕设答辩拿了全院最高分，但过程差点让我秃头</title>
-      <link href="/2025/06/15/mtsir3-gan/"/>
-      <url>/2025/06/15/mtsir3-gan/</url>
-      
-        <content type="html"><![CDATA[<h2 id="选题：导师说我在找死"><a href="#选题：导师说我在找死" class="headerlink" title="选题：导师说我在找死"></a>选题：导师说我在找死</h2><p>大四选毕设题目的时候，我跟导师说想做 GAN 做时间序列缺失值填补。</p><p>导师看了我一眼，原话是：”用GAN做时序？你是在找死。”</p><p>说实话当时我心里也没底。GAN 训练不稳定这事在 CV 圈子里都是老生常谈了，更别提拿到时序数据上用——这玩意儿不像图片，你生成的东西好不好人眼一看就知道，时序数据你得靠指标说话，中间出了问题你连 debug 的抓手都没有。</p><p>但我还是选了这个题。原因很简单：当时看了一圈文献，发现做多变量时间序列填补（MTSI）的工作要么是 RNN 那一套确定性回归，要么是 VAE 系列，GAN 方向几乎没人能跑稳。越是没人做成的东西越让我手痒——大概是打 ACM 打多了，看到 hard problem 就想冲 😂</p><p>后来想想，这个选择差点要了我的命。</p><h2 id="前两个月：Mode-Collapse-地狱"><a href="#前两个月：Mode-Collapse-地狱" class="headerlink" title="前两个月：Mode Collapse 地狱"></a>前两个月：Mode Collapse 地狱</h2><p>我的方案核心思路是这样的：先把多变量时间序列通过 Patching（类似 ViT 的 patch embedding）从 1D 映射到 2D，这样就能用成熟的 CNN 架构了。然后生成器和判别器都用深层 ResNet（20 多个残差块），输入是数据矩阵、掩码矩阵、时间间隔矩阵三个拼在一起——让模型知道哪里缺了、缺了多久。</p><p>听起来很美对吧？</p><p>实际跑起来就是另一个世界了。</p><p>前两个月，我几乎把所有时间都耗在了训练上。loss 曲线我到现在都记得——像心电图一样上蹿下跳，判别器 loss 一路往下冲到零，生成器直接摆烂，输出全是同一个值。经典的 mode collapse。</p><p>我试了各种骚操作：改 learning rate schedule、加 spectral normalization、换不同的 GAN loss（WGAN-GP、LSGAN、hinge loss）……两百多次实验，Wandb 上的 run 密密麻麻的，没有一次是能看的。</p><p>那段时间每天的生活就是：起床 → 开跑实验 → 盯着 loss 曲线发呆 → 崩了 → 改参数 → 再跑 → 再崩。周围同学的毕设都在稳步推进，有几个做 NLP 微调的已经开始写论文了，我这边连个 baseline 都跑不出来。</p><p>讲真，有段时间我是真的想换题。</p><p>凌晨两点的实验室就剩我一个人，盯着屏幕上又一次 collapse 的 loss 曲线，整个人都是麻的。</p><h2 id="顿悟时刻：Fixup-初始化"><a href="#顿悟时刻：Fixup-初始化" class="headerlink" title="顿悟时刻：Fixup 初始化"></a>顿悟时刻：Fixup 初始化</h2><p>转折发生在一个很普通的晚上。</p><p>我当时在翻一篇 ICLR 的论文，讲的是图像生成里深层 ResNet 的训练技巧。里面提到一个叫 Fixup 初始化 的东西——核心思想简单到离谱：把残差分支最后一层卷积的权重初始化为零。就这样。没了。</p><p>我当时第一反应是”就这？？？”这不就是让网络一开始表现成恒等映射嘛，然后慢慢学残差修正。原理我都懂，但这也太简单了吧，能管用？</p><p>抱着试试看的心态加上去了。</p><p>然后配合 RpGAN（相对判别 GAN，让判别器比较”真实样本比生成样本更真”的概率而不是直接判真假）和 R1&#x2F;R2 梯度正则化（约束判别器的梯度别太离谱），三个东西一起上——</p><p>loss 曲线它稳住了。</p><p>我盯着屏幕看了五分钟，不敢动。因为之前也有过 loss 看起来稳了然后突然崩的情况。一个 epoch 过去了，两个 epoch 过去了，十个 epoch 过去了……生成器和判别器的 loss 在一个合理的范围内交替震荡，没有 collapse 的迹象。</p><p>我记得我当时站起来在实验室走了两圈，回来又看了看曲线，确认自己不是在做梦。</p><p>那种感觉怎么说呢——你调了两个月的东西，最后发现答案是这么一个简单到让人想骂人的初始化策略。就像你找了两个月的 bug，最后发现是少了个分号。属于是又想哭又想笑 😭</p><h2 id="跑通的那一夜"><a href="#跑通的那一夜" class="headerlink" title="跑通的那一夜"></a>跑通的那一夜</h2><p>确认训练能稳定之后，我开始疯狂跑实验。PhysioNet Challenge 2012（ICU 的多变量生理信号，35 个变量，80% 自然缺失率）和北京空气质量数据集，在 10% 到 70% 的不同缺失率设定下全面对比。</p><p>结果出来的那天晚上，我看到 MAE&#x2F;RMSE 比之前的 SOTA（BRITS、SAITS、GP-VAE 那些）平均低了 11%，收敛速度快了 40%，而且整个训练过程几乎没有出现 mode collapse。</p><p>我在宿舍里喊了一声”卧槽”，把已经睡着的室友吵醒了。他翻了个身问我咋了，我说我毕设跑通了。他说”哦”然后继续睡了。</p><p>……行吧，室友不懂 GAN 的痛苦也不懂 GAN 跑通的快乐，这很合理 🥲</p><p>消融实验也很漂亮：Patching 策略和三矩阵条件输入各贡献了 3-4% 的误差下降，但最关键的还是 Fixup + RpGAN + 梯度正则化这套组合拳——没有它们，深层 ResNet 架构根本跑不起来，前两个月的血泪就是证明。</p><h2 id="答辩：全院最高分"><a href="#答辩：全院最高分" class="headerlink" title="答辩：全院最高分"></a>答辩：全院最高分</h2><p>答辩那天我紧张到手心出汗。</p><p>因为这个方向太偏了——做 GAN 的老师不一定懂时序，做时序的老师不一定懂 GAN，万一评委觉得”你搞这么花哨有什么必要”就完蛋了。</p><p>但讲到训练稳定性那块的时候，我能感觉到台下有几个老师眼睛亮了。因为 GAN 训练不稳定是个所有做过生成模型的人都痛过的问题，我的方案确实给出了一个看得见的解法。一个评委当场问我 Fixup 初始化的理论基础是什么，我解释完之后他点了点头，说”这个想法比较 elegant”。</p><p>成绩出来的时候我整个人是懵的——全院最高分，优秀毕业论文。</p><p>那一刻我真的绷不住了。前两个月 mode collapse 的绝望、凌晨空荡荡的实验室、想换题的念头、Fixup 跑通那一瞬间的不真实感……全部涌上来了。</p><p>打电话给我妈说了这个消息，她说”哦那你记得吃饭”。</p><p>好吧，这大概就是中国家长 😂</p><h2 id="写在最后"><a href="#写在最后" class="headerlink" title="写在最后"></a>写在最后</h2><p>代码已经全部开源了：<a href="https://github.com/he-yufeng/MTSIR3-GAN">MTSIR3-GAN GitHub</a>，有兴趣的可以去看看。</p><p>回头看这段经历，我最大的感受是：深度学习很多时候不是你不够聪明，是你还没找到那个对的组合。Fixup 初始化、RpGAN、梯度正则化，这几个技术单拎出来都不是什么新东西，但放在一起就是能让一个之前怎么都跑不动的架构突然 work 了。</p><p>还有就是，做研究真的需要一点”不信邪”的劲头。导师说找死的时候，如果我真的换了题，大概率也能毕业，但绝对不会有这种”我靠我真的做出来了”的感觉。</p><p>当然了，代价就是我的发际线在那两个月明显后移了。</p><p>值不值得？我觉得值。毕竟秃头在 CS 圈子里也算是一种勋章了吧（不是</p>]]></content>
-      
-      
-      <categories>
-          
-          <category> Research </category>
-          
-      </categories>
-      
-      
-        <tags>
-            
-            <tag> GAN </tag>
-            
-            <tag> Time Series </tag>
-            
-            <tag> Deep Learning </tag>
-            
-            <tag> PyTorch </tag>
-            
-            <tag> 毕设 </tag>
             
         </tags>
       
