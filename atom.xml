@@ -12,7 +12,27 @@
     <![CDATA[AI Engineer & Competitive Programmer]]>
   </subtitle>
   <title>Yufeng He | 何宇峰</title>
-  <updated>2026-06-22T08:01:11.367Z</updated>
+  <updated>2026-06-22T09:00:05.066Z</updated>
+  <entry>
+    <author>
+      <name>Yufeng He</name>
+    </author>
+    <category term="技术" scheme="https://he-yufeng.github.io/categories/%E6%8A%80%E6%9C%AF/"/>
+    <category term="Claude Code" scheme="https://he-yufeng.github.io/tags/Claude-Code/"/>
+    <category term="AI Agent" scheme="https://he-yufeng.github.io/tags/AI-Agent/"/>
+    <category term="开源" scheme="https://he-yufeng.github.io/tags/%E5%BC%80%E6%BA%90/"/>
+    <category term="Python" scheme="https://he-yufeng.github.io/tags/Python/"/>
+    <category term="开发工具" scheme="https://he-yufeng.github.io/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/"/>
+    <content>
+      <![CDATA[<p>现在用 Claude Code、Cursor、Copilot 的人，多少都写过一份给 AI 看的规则文件，<code>CLAUDE.md</code>、<code>.cursorrules</code>、<code>copilot-instructions.md</code> 之类。给 AI 一点项目上下文，它干活确实靠谱很多。</p><p>但这类文件有一个很隐蔽的毛病：它会过期，而且过期的时候不报错。</p><p>代码过期了，测试会挂、CI 会变红、type checker 会叫。规则文件不会。你三个月前写「用 yarn 装依赖、用 black 格式化」，后来项目悄悄迁到了 pnpm、换成了 ruff，那份规则文件还安安静静躺在仓库根目录，一脸笃定地告诉 AI 用 yarn 和 black。AI 信了它，于是它建议的命令跑不通、它格式化出来的代码跟项目风格对不上，你还纳闷这助手怎么越用越笨。</p><p>更常见的是另外两种情况。一种是压根没写规则文件，把 AI 本可以拿到的项目上下文白白浪费掉；另一种是从网上抄了一份通用模板，跟你真实的技术栈根本不匹配，通篇「请遵循最佳实践」这种正确的废话。</p><p><a href="https://github.com/he-yufeng/RuleForge">RuleForge</a> 想解决的就是这一摊事。它做两件事，生成，和体检。</p><h2 id="生成：从项目配置里读，不靠猜"><a href="#生成：从项目配置里读，不靠猜" class="headerlink" title="生成：从项目配置里读，不靠猜"></a>生成：从项目配置里读，不靠猜</h2><p>生成这部分比较直观。它读你项目的真实配置，<code>pyproject.toml</code>、<code>package.json</code>、lockfile、lint 配置、CI 文件，识别出语言、框架、包管理器、lint 和格式化工具、测试框架、CI 系统，然后生成贴合这套技术栈的规则文件。一个命令支持六种格式：<code>CLAUDE.md</code>、<code>.cursorrules</code>、<code>copilot-instructions.md</code>、工具无关的 <code>AGENTS.md</code>、<code>.windsurfrules</code>、<code>.clinerules</code>。</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">pip install ruleforge</span><br><span class="line">ruleforge scan .       <span class="comment"># 先看检测到了什么</span></span><br><span class="line">ruleforge preview .    <span class="comment"># 预览生成内容，不落盘</span></span><br><span class="line">ruleforge generate .   <span class="comment"># 写出规则文件</span></span><br></pre></td></tr></table></figure><blockquote><p>📸 建议此处插入截图：<code>ruleforge scan .</code> 的输出，列出检测到的语言&#x2F;框架&#x2F;包管理器&#x2F;lint&#x2F;CI，直观展示「它真的读懂了我的项目」。</p></blockquote><h2 id="从-CI-里提取真实命令"><a href="#从-CI-里提取真实命令" class="headerlink" title="从 CI 里提取真实命令"></a>从 CI 里提取真实命令</h2><p>生成里有个值得单独讲的细节：它会去读 GitHub Actions 工作流的 <code>run</code> 步骤，把 CI 真正执行的验证命令提取出来写进规则。</p><p>为什么这点重要？因为你「以为」项目怎么测，和 CI「实际」怎么测，经常是两回事。随着时间推移，本地开发习惯、README 里的说明、和 CI 里实际跑的命令，会渐渐漂移出去。一份只反映你记忆的规则文件，会让 AI 给出跟 CI 结果不一致的指引，最后还是只能靠 push → CI 报错 → 来回改的方式磨。</p><p>RuleForge 直接把 CI 的 <code>run</code> 步骤提出来，引用了 <code>$&#123;&#123; secrets.* &#125;&#125;</code> 的命令会被跳过，不会把需要凭据的命令暴露进规则文件。</p><h2 id="audit：规则够不够全"><a href="#audit：规则够不够全" class="headerlink" title="audit：规则够不够全"></a>audit：规则够不够全</h2><p>光会生成不够，真实世界里满地都是已经写好、但早就不可信的规则文件。这时候就要靠体检。</p><p><code>audit</code> 回答「这份规则文件够不够」。它按几个维度打分：项目背景和技术栈是否覆盖、测试&#x2F;构建命令是否有明确指引、CI 提取的真实验证命令是否写进去、有没有 secret 处理规则、有没有交代 git 和 review 工作流、有没有对 AI 行为方式的约束。</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ruleforge audit . --min-score 80           <span class="comment"># 进 CI，规则质量不达标就失败</span></span><br><span class="line">ruleforge audit . --format sarif &gt; out.sarif   <span class="comment"># 缺的规则变成 GitHub Code Scanning 告警</span></span><br></pre></td></tr></table></figure><p><code>--format sarif</code> 这条比较实用：把缺失的规则维度直接转成 Code Scanning 告警，合并进 GitHub 的 Security 面板，不需要单独维护一套告警入口。</p><h2 id="lint：揪出正在骗-AI-的内容"><a href="#lint：揪出正在骗-AI-的内容" class="headerlink" title="lint：揪出正在骗 AI 的内容"></a>lint：揪出正在骗 AI 的内容</h2><p><code>lint</code> 回答另一个更尖锐的问题：这份规则里有没有写错的、会把 AI 带偏的指引。它专门揪三类：</p><p><strong>没填完的占位符</strong>：<code>TODO</code>、<code>&#123;&#123; your project name &#125;&#125;</code>、<code>&lt;tech stack&gt;</code>，模板抄来没改完，AI 会当成真实指令照做。</p><p><strong>自相矛盾的工具指令</strong>：同时叫 AI 用 <code>npm</code> 和 <code>pnpm</code>、<code>pytest</code> 和 <code>unittest</code>、<code>black</code> 和 <code>ruff</code>。这类冲突在两个人分别更新规则文件时特别容易出现，而且出了问题很难排查原因。</p><p><strong>过时的建议</strong>：仓库明明已经是 <code>pnpm-lock.yaml</code> 了还让用 yarn，项目早切到 ruff 了还让用 black 格式化。</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ruleforge lint .            <span class="comment"># 占位符报 error，工具冲突/过时报 warning，有 error 退出非零</span></span><br><span class="line">ruleforge lint . --strict   <span class="comment"># 把 warning 也当错误，卡进 CI</span></span><br></pre></td></tr></table></figure><blockquote><p>📸 建议此处插入截图：<code>ruleforge lint .</code> 揪出一份旧 <code>CLAUDE.md</code> 里的占位符或「项目已用 pnpm 却让 AI 用 yarn」的过时建议，这是最有冲击力的一张图。</p></blockquote><p>冲突和过时检查只在同一生态内比较——一个真正同时用 <code>pytest</code> 和 <code>jest</code>（Python + Node 混合）、或 <code>ruff</code> 和 <code>eslint</code>（Python formatter + JS linter）的多语言仓库，不会被误报成「冲突」。</p><h2 id="一个关于克制的设计决定"><a href="#一个关于克制的设计决定" class="headerlink" title="一个关于克制的设计决定"></a>一个关于克制的设计决定</h2><p>生成新规则时，RuleForge 会先检测项目里已有的助手规则文件，并在生成稿里标出哪些地方被已有的本地规则覆盖，避免无意中覆盖掉你手写的、可能更严格的本地约束。这是一个「帮倒忙代价太高」的判断：帮你生成一份差点的规则，比替你清掉一份你精心维护的规则，风险要小得多。</p><p>边界也写进了 README：检测基于配置文件和扩展名，不做代码语义分析；生成的是一个好起点，不是终稿，按项目实际约定再 review 一遍比较稳。它不试图替你写出完美的规则，它试图保证你那份规则没在骗 AI。</p><p>而「规则文件在悄悄骗 AI」这件事，恰恰比「生成」本身更容易被忽略，也更值钱。</p><p>项目地址：<a href="https://github.com/he-yufeng/RuleForge">github.com&#x2F;he-yufeng&#x2F;RuleForge</a>，<code>pip install ruleforge</code> 就能用，MIT。</p><p>想问问：你仓库里那份 <code>CLAUDE.md</code> &#x2F; <code>.cursorrules</code>，上次更新是什么时候？里面写的命令，现在还跑得通吗？</p><hr><p>我是何宇峰，在做 AI Agent 相关的工程和开源。更多项目在我的 <a href="https://github.com/he-yufeng">GitHub</a>。我目前在找实习 &#x2F; 看秋招机会，欢迎内推或聊聊：<a href="https://www.linkedin.com/in/yufenghe">领英</a>。</p>]]>
+    </content>
+    <id>https://he-yufeng.github.io/2026/06/22/ruleforge-stale-ai-rules/</id>
+    <link href="https://he-yufeng.github.io/2026/06/22/ruleforge-stale-ai-rules/"/>
+    <published>2026-06-22T12:00:00.000Z</published>
+    <summary>代码过期了测试会挂、CI 会红，但你给 AI 助手写的 CLAUDE.md / .cursorrules 过期了什么都不会发生，只会默默把 AI 带偏。我做了 RuleForge：读项目真实配置生成规则，并能 lint 揪出占位符、工具冲突和过时建议。</summary>
+    <title>代码过期会让 CI 变红，可你给 AI 写的规则文件过期了，什么都不会发生</title>
+    <updated>2026-06-22T09:00:05.066Z</updated>
+  </entry>
   <entry>
     <author>
       <name>Yufeng He</name>
@@ -38,8 +58,8 @@
       <name>Yufeng He</name>
     </author>
     <category term="技术" scheme="https://he-yufeng.github.io/categories/%E6%8A%80%E6%9C%AF/"/>
-    <category term="AI Agent" scheme="https://he-yufeng.github.io/tags/AI-Agent/"/>
     <category term="Claude Code" scheme="https://he-yufeng.github.io/tags/Claude-Code/"/>
+    <category term="AI Agent" scheme="https://he-yufeng.github.io/tags/AI-Agent/"/>
     <category term="Anthropic" scheme="https://he-yufeng.github.io/tags/Anthropic/"/>
     <category term="源码分析" scheme="https://he-yufeng.github.io/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"/>
     <category term="TypeScript" scheme="https://he-yufeng.github.io/tags/TypeScript/"/>
